@@ -3,13 +3,12 @@ import bodyParser from "body-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 import scheduleRouter from "./routes/schedule.route.js";
-
+import { PORT } from "./config/env.js";
 // Fix __dirname trong ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3000;
 
 // Middleware
 app.use(bodyParser.json());
