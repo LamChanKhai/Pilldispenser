@@ -1,7 +1,7 @@
 import mqtt from 'mqtt';
 
 // Kết nối MQTT broker
-const client = mqtt.connect('mqtt://localhost:1883'); 
+const client = mqtt.connect('mqtt://34.63.156.115:1883'); 
 // 👉 sau này bạn thay localhost bằng VPS_PUBLIC_IP
 client.subscribe('pill/data/log');
 client.on('connect', () => {
