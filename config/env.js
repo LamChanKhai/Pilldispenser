@@ -1,5 +1,10 @@
 import { config } from "dotenv";
 
-config({path: `.env.${process.env.NODE_ENV || 'development'}.local`});
+// Chỉ load dotenv khi không phải production
+if (process.env.NODE_ENV !== "production") {
+  config({ path: `.env.${process.env.NODE_ENV || 'development'}.local` });
+}
 
-export const { PORT , MQTT_BROKER_URL } = process.env; 
+// Lấy biến môi trường
+export const PORT = process.env.PORT || 3000;
+export const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL;
