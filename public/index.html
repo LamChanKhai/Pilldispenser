@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Hộp Y Tế Thông Minh</title>
+  <style>
+    body {
+  font-family: Arial, sans-serif;
+  background: #f3f4f6;
+  margin: 0;
+  height: 80vh; /* cao đúng bằng màn hình */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* căn giữa theo chiều dọc */
+  align-items: center;     /* căn giữa theo chiều ngang */
+}
+h1 {
+  font-size: 28px;
+  font-weight: bold;
+  color: #111827;
+  margin: 10px 0 80px 0; /* trên 10px, dưới 20px */
+  text-align: center;
+}
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 900px;
+      width: 100%;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+    }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+      color: #111827;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card p {
+      color: #4b5563;
+      margin-bottom: 20px;
+      flex-grow: 1;
+    }
+    .btn {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      height: 45px;
+      background: #2563eb;
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+    .btn:hover {
+      background: #1e40af;
+    }
+    .btn.green {
+      background: #16a34a;
+    }
+    .btn.green:hover {
+      background: #15803d;
+    }
+  </style>
+</head>
+<body>
+  <!-- Tiêu đề -->
+  <h1>Hộp Y Tế Thông Minh</h1>
+
+  <div class="container">
+    <!-- Card Đo sinh hóa -->
+    <div class="card">
+      <div>
+        <h2>🩺 Đo sinh hóa</h2>
+        <p>Xem và theo dõi các chỉ số: Nhịp tim, Nhiệt độ, Huyết áp, Oxy trong máu.</p>
+      </div>
+      <a href="measurement.html" class="btn green">Xem chi tiết</a>
+    </div>
+
+    <!-- Card Hẹn giờ uống thuốc -->
+    <div class="card">
+      <div>
+        <h2>⏰ Hẹn giờ uống thuốc</h2>
+        <p>Thiết lập thời gian nhắc nhở uống thuốc hàng ngày.</p>
+      </div>
+      <a href="setTime.html" class="btn">Thiết lập</a>
+    </div>
+  </div>
+</body>
+</html>

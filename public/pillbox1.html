@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Hẹn Giờ Uống Thuốc</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+      margin: 20px;
+      background: #f9fafb;
+      color: #111827;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+      font-size: 28px;
+      color: #2563eb;
+    }
+
+    /* Container card */
+    .ngan-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 25px;
+      justify-content: center;
+      max-width: 1000px;
+      margin: 0 auto 40px auto;
+      padding: 0 20px;
+    }
+
+    /* Card chi tiết */
+    .chi-tiet {
+      border-radius: 15px;
+      border: 2px solid #e5e7eb;
+      padding: 25px;
+      background: white;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      animation: fadeIn 0.4s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: stretch;
+      text-align: left;
+    }
+
+    .chi-tiet h2 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      color: #111827;
+      text-align: center;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .form-group label {
+      font-size: 14px;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .form-group input {
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    .form-group input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px #93c5fd;
+    }
+
+    button {
+      padding: 12px;
+      font-size: 15px;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.3s;
+      min-width: 120px;
+    }
+
+    button:hover {
+      background: #1e40af;
+      transform: scale(1.05);
+    }
+
+    /* Canh giữa nút */
+    .button-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(10px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+  </style>
+</head>
+<body>
+  <h1>Hẹn Giờ Uống Thuốc</h1>
+  <div class="ngan-container">
+    <!-- Khung chỉnh giờ -->
+    <div class="chi-tiet" id="chiTietSang">
+      <h2>Sáng</h2>
+      <div class="form-group">
+        <label for="gioSang">Giờ uống:</label>
+        <input type="time" id="gioSang" required>
+      </div>
+  
+    </div>
+    <div class="chi-tiet" id="chiTietToi">
+      <h2>Tối</h2>
+      <div class="form-group">
+        <label for="gioToi">Giờ uống:</label>
+        <input type="time" id="gioToi" required>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nút Lưu canh giữa -->
+  <div class="button-container">
+    <button onclick="luuThoiGian()">💾 Lưu</button>
+  </div>
+
+  <script>
+    async function luuThoiGian() {
+      const gioSang = document.getElementById("gioSang").value;
+      const gioToi = document.getElementById("gioToi").value;
+      const data = {
+        mode: "quick",
+        sang: gioSang,
+        toi: gioToi
+      };
+      try {
+        const response = await fetch('/api/v1/schedule', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+        if (response.ok) {
+          const result = await response.json();
+          alert(result.message);
+        } else {
+          const errorData = await response.json();
+          alert('Lỗi: ' + errorData.message);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Lỗi khi kết nối đến máy chủ.');
+      }
+    }
+  </script>
+</body>
+</html>
