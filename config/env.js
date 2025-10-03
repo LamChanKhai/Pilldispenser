@@ -7,4 +7,5 @@ if (process.env.NODE_ENV !== "production") {
 
 // Lấy biến môi trường
 export const PORT = process.env.PORT || 3000;
+
 export const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL;
