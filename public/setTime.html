@@ -3,105 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <title>Hộp Y Tế Thông Minh</title>
-  <style>
-    body {
-  font-family: Arial, sans-serif;
-  background: #f3f4f6;
-  margin: 0;
-  height: 80vh; /* cao đúng bằng màn hình */
-  display: flex;
-  flex-direction: column;
-  justify-content: center; /* căn giữa theo chiều dọc */
-  align-items: center;     /* căn giữa theo chiều ngang */
-}
-h1 {
-  font-size: 28px;
-  font-weight: bold;
-  color: #111827;
-  margin: 10px 0 80px 0; /* trên 10px, dưới 20px */
-  text-align: center;
-}
-    .container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      max-width: 900px;
-      width: 100%;
-    }
-    .card {
-      background: white;
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      transition: transform 0.2s, box-shadow 0.2s;
-
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 6px 14px rgba(0,0,0,0.15);
-    }
-    .card h2 {
-      margin: 0 0 12px;
-      font-size: 22px;
-      color: #111827;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .card p {
-      color: #4b5563;
-      margin-bottom: 20px;
-      flex-grow: 1;
-    }
-    .btn {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 100%;
-      height: 45px;
-      background: #2563eb;
-      color: white;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: bold;
-      transition: background 0.2s;
-    }
-    .btn:hover {
-      background: #1e40af;
-    }
-    .btn.green {
-      background: #16a34a;
-    }
-    .btn.green:hover {
-      background: #15803d;
-    }
-  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <!-- Tiêu đề -->
-  <h1>Hộp Y Tế Thông Minh</h1>
+<body class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-rose-100 text-gray-800">
 
-  <div class="container">
-    <!-- Card Đo sinh hóa -->
-    <div class="card">
+  <!-- Nơi menu được chèn -->
+  <div id="menu-container"></div>
+
+  <script>
+    // Nạp thanh menu vào mỗi trang
+    fetch("menu.html")
+      .then(res => res.text())
+      .then(html => document.getElementById("menu-container").innerHTML = html);
+  </script>
+
+  <!-- Tiêu đề -->
+  <h1 class="text-4xl font-extrabold mb-16 text-gray-900 text-center tracking-tight">
+    💊 Cài Đặt Lịch Uống Thuốc
+  </h1>
+
+  <!-- Container -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-4xl w-full px-6">
+
+    <!-- Card Đặt lịch nhanh -->
+    <div class="group bg-white rounded-3xl p-8 shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-transparent hover:border-pink-300 flex flex-col justify-between">
       <div>
-        <h2>📌 Đặt lịch nhanh</h2>
-        <p>Cài đặt 1 ngày cho các ngày còn lại</p>
+        <h2 class="text-2xl font-semibold mb-3 flex items-center gap-3 text-gray-900">
+          📌 Đặt lịch nhanh
+        </h2>
+        <p class="text-gray-600 leading-relaxed">
+          Cài đặt thời gian trong <b>1 ngày</b> và áp dụng cho <b>tất cả các ngày còn lại</b> trong tuần. Tiện lợi, tiết kiệm thời gian.
+        </p>
       </div>
-      <a href="pillbox1.html" class="btn green">Xem chi tiết</a>
+      <a href="pillbox1.html"
+         class="mt-8 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-semibold py-3 rounded-xl text-center shadow-md hover:shadow-lg transition-all duration-300">
+        Xem chi tiết
+      </a>
     </div>
 
     <!-- Card Hẹn giờ uống thuốc -->
-    <div class="card">
+    <div class="group bg-white rounded-3xl p-8 shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-transparent hover:border-purple-300 flex flex-col justify-between">
       <div>
-        <h2>⏰ Hẹn giờ uống thuốc</h2>
-        <p>Thiết lập thời gian nhắc nhở uống thuốc hàng ngày.</p>
+        <h2 class="text-2xl font-semibold mb-3 flex items-center gap-3 text-gray-900">
+          ⏰ Hẹn giờ uống thuốc
+        </h2>
+        <p class="text-gray-600 leading-relaxed">
+          Thiết lập <b>thời gian nhắc nhở</b> cho từng ngăn thuốc. Hệ thống sẽ thông báo tự động giúp bạn không quên liều.
+        </p>
       </div>
-      <a href="pillbox2.html" class="btn">Thiết lập</a>
+      <a href="pillbox2.html"
+         class="mt-8 bg-gradient-to-r from-purple-500 to-fuchsia-600 hover:from-purple-600 hover:to-fuchsia-700 text-white font-semibold py-3 rounded-xl text-center shadow-md hover:shadow-lg transition-all duration-300">
+        Thiết lập
+      </a>
     </div>
+
   </div>
+
+  <!-- Footer -->
+  <footer class="mt-16 text-gray-500 text-sm text-center">
+    © 2025 Smart Health Box — <span class="text-pink-600 font-medium">ledinhkhanh</span>
+  </footer>
+
 </body>
 </html>

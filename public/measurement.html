@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Đo Chỉ Số Sức Khỏe</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-indigo-100 text-gray-800 flex flex-col items-center">
+
+  <!-- Menu -->
+  <div id="menu-container"></div>
+  <script>
+    fetch("menu.html")
+      .then(res => res.text())
+      .then(html => document.getElementById("menu-container").innerHTML = html);
+  </script>
+
+  <!-- Nội dung chính -->
+  <main class="mt-28 w-full max-w-5xl px-6 pb-16 flex flex-col items-center">
+    <h1 class="text-3xl font-bold text-indigo-600 mb-10 tracking-wide text-center">
+      🩺 Đo Chỉ Số Sinh Học Cơ Thể
+    </h1>
+
+    <!-- 3 chỉ số -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 w-full">
+      <!-- Nhiệt độ -->
+      <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+        <div class="text-5xl mb-3">🌡️</div>
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">Nhiệt độ cơ thể</h2>
+        <p id="tempValue" class="text-3xl font-bold text-blue-600">-- °C</p>
+        <button onclick="measure('temperature')" class="mt-4 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 hover:scale-105 transition-all duration-300">Đo ngay</button>
+      </div>
+
+      <!-- Nồng độ Oxi -->
+      <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+        <div class="text-5xl mb-3">🫁</div>
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">Oxi trong máu (SpO₂)</h2>
+        <p id="oxygenValue" class="text-3xl font-bold text-green-600">-- %</p>
+        <button onclick="measure('oxygen')" class="mt-4 bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 hover:scale-105 transition-all duration-300">Đo ngay</button>
+      </div>
+
+      <!-- Huyết áp -->
+      <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+        <div class="text-5xl mb-3">❤️</div>
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">Huyết áp</h2>
+        <p id="bpValue" class="text-3xl font-bold text-red-500">-- / -- mmHg</p>
+        <button onclick="measure('bloodPressure')" class="mt-4 bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 hover:scale-105 transition-all duration-300">Đo ngay</button>
+      </div>
+    </div>
+
+    <!-- Kết quả chi tiết -->
+    <div id="resultBox" class="hidden mt-12 bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg text-center border border-gray-100">
+      <h2 class="text-2xl font-bold text-indigo-600 mb-3">📊 Kết Quả Gần Nhất</h2>
+      <p id="resultText" class="text-gray-700 text-lg">Đang xử lý dữ liệu...</p>
+    </div>
+  </main>
+
+  <script>
+    // Giả lập đo chỉ số (sau này thay bằng API thực tế)
+    async function measure(type) {
+      const resultBox = document.getElementById("resultBox");
+      const resultText = document.getElementById("resultText");
+
+      resultBox.classList.remove("hidden");
+      resultText.textContent = "⏳ Đang đo, vui lòng chờ...";
+
+      try {
+        // Gửi yêu cầu đo qua API
+        const res = await fetch(`/api/v1/measure/${type}`);
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.message || "Lỗi khi đo");
+
+        // Hiển thị kết quả đo
+        if (type === "temperature") {
+          document.getElementById("tempValue").textContent = data.value + " °C";
+        } else if (type === "oxygen") {
+          document.getElementById("oxygenValue").textContent = data.value + " %";
+        } else if (type === "bloodPressure") {
+          document.getElementById("bpValue").textContent = `${data.systolic} / ${data.diastolic} mmHg`;
+        }
+
+        resultText.textContent = `✅ ${data.message || "Đo thành công!"}`;
+      } catch (err) {
+        console.error(err);
+        resultText.textContent = "⚠️ Lỗi khi đo, vui lòng thử lại.";
+      }
+    }
+  </script>
+</body>
+</html>

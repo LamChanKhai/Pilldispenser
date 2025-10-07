@@ -2,137 +2,69 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Hẹn Giờ Uống Thuốc</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      text-align: center;
-      margin: 20px;
-      background: #f9fafb;
-      color: #111827;
-    }
-
-    h1 {
-      margin-bottom: 30px;
-      font-size: 28px;
-      color: #2563eb;
-    }
-
-    /* Container card */
-    .ngan-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 25px;
-      justify-content: center;
-      max-width: 1000px;
-      margin: 0 auto 40px auto;
-      padding: 0 20px;
-    }
-
-    /* Card chi tiết */
-    .chi-tiet {
-      border-radius: 15px;
-      border: 2px solid #e5e7eb;
-      padding: 25px;
-      background: white;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-      animation: fadeIn 0.4s ease;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      align-items: stretch;
-      text-align: left;
-    }
-
-    .chi-tiet h2 {
-      margin: 0 0 10px;
-      font-size: 20px;
-      color: #111827;
-      text-align: center;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-    }
-
-    .form-group label {
-      font-size: 14px;
-      margin-bottom: 6px;
-      font-weight: 600;
-      color: #374151;
-    }
-
-    .form-group input {
-      padding: 10px;
-      font-size: 14px;
-      border-radius: 8px;
-      border: 1px solid #d1d5db;
-      outline: none;
-      transition: 0.3s;
-    }
-
-    .form-group input:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 2px #93c5fd;
-    }
-
-    button {
-      padding: 12px;
-      font-size: 15px;
-      border: none;
-      border-radius: 8px;
-      background: #2563eb;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-      transition: 0.3s;
-      min-width: 120px;
-    }
-
-    button:hover {
-      background: #1e40af;
-      transform: scale(1.05);
-    }
-
-    /* Canh giữa nút */
-    .button-container {
-      text-align: center;
-      margin-top: 20px;
-    }
-
-    @keyframes fadeIn {
-      from {opacity: 0; transform: translateY(10px);}
-      to {opacity: 1; transform: translateY(0);}
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⏰ Hẹn Giờ Uống Thuốc</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>Hẹn Giờ Uống Thuốc</h1>
-  <div class="ngan-container">
-    <!-- Khung chỉnh giờ -->
-    <div class="chi-tiet" id="chiTietSang">
-      <h2>Sáng</h2>
-      <div class="form-group">
-        <label for="gioSang">Giờ uống:</label>
-        <input type="time" id="gioSang" required>
-      </div>
-  
-    </div>
-    <div class="chi-tiet" id="chiTietToi">
-      <h2>Tối</h2>
-      <div class="form-group">
-        <label for="gioToi">Giờ uống:</label>
-        <input type="time" id="gioToi" required>
-      </div>
-    </div>
-  </div>
 
-  <!-- Nút Lưu canh giữa -->
-  <div class="button-container">
-    <button onclick="luuThoiGian()">💾 Lưu</button>
-  </div>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex flex-col items-center justify-start">
+
+  <!-- Menu -->
+  <div id="menu-container"></div>
+  <script>
+    fetch("menu.html")
+      .then(res => res.text())
+      .then(html => document.getElementById("menu-container").innerHTML = html);
+  </script>
+
+  <!-- Nội dung chính -->
+  <main class="mt-28 px-4 sm:px-6 md:px-8 w-full flex flex-col items-center">
+    <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-10 text-center tracking-tight">
+      ⏰ Hẹn Giờ Uống Thuốc
+    </h1>
+
+    <!-- Grid khung chỉnh giờ -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl w-full">
+      
+      <!-- Sáng -->
+      <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-6 md:p-8 border border-transparent hover:border-blue-200">
+        <h2 class="text-2xl font-semibold text-gray-900 mb-6 text-center">🌅 Buổi Sáng</h2>
+        <div class="space-y-5">
+          <div class="flex flex-col">
+            <label for="gioSang" class="font-semibold text-gray-700 mb-2">Giờ uống:</label>
+            <input type="time" id="gioSang"
+                   class="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tối -->
+      <div class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-6 md:p-8 border border-transparent hover:border-indigo-200">
+        <h2 class="text-2xl font-semibold text-gray-900 mb-6 text-center">🌙 Buổi Tối</h2>
+        <div class="space-y-5">
+          <div class="flex flex-col">
+            <label for="gioToi" class="font-semibold text-gray-700 mb-2">Giờ uống:</label>
+            <input type="time" id="gioToi"
+                   class="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all duration-200" required>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Nút Lưu -->
+    <div class="mt-10">
+      <button onclick="luuThoiGian()"
+              class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300">
+        💾 Lưu
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-12 md:mt-16 text-gray-500 text-xs md:text-sm text-center">
+      © 2025 Smart Health Box — by <b class="text-blue-600">ledinhkhanh.pt</b>
+    </footer>
+  </main>
 
   <script>
     async function luuThoiGian() {
