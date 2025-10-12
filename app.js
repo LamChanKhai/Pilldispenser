@@ -41,3 +41,5 @@ server.listen(PORT, async () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
   await connecToDatabase();
 });
+
+export default app;
