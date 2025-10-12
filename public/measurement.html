@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Đo Chỉ Số Sức Khỏe</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-indigo-100 text-gray-800 flex flex-col items-center">
 
@@ -12,7 +13,29 @@
   <script>
     fetch("menu.html")
       .then(res => res.text())
-      .then(html => document.getElementById("menu-container").innerHTML = html);
+      .then(html => {
+        document.getElementById("menu-container").innerHTML = html;
+        const socket = io();
+        socket.on('pill/data/status', (status) => {
+          const jsonStatus = JSON.parse(status);
+          const wifiIcon = document.getElementById('wifi-status');
+          if(!wifiIcon) console.log('wifiIcon not found');
+          console.log(jsonStatus.status);
+          if(jsonStatus.status === 'online') {
+            wifiIcon.innerHTML = '📶';
+            wifiIcon.className = 'text-green-500 text-xl md:text-2xl animate-pulse';
+            wifiIcon.title = 'Đã kết nối IoT';
+          } else {
+            wifiIcon.innerHTML = '📴';
+            wifiIcon.className = 'text-red-500 text-xl md:text-2xl';
+            wifiIcon.title = 'Mất kết nối IoT';
+          }
+        });
+      });
+    function toggleMenu() {
+      const menu = document.getElementById('mobile-menu');
+      if (menu) menu.classList.toggle('hidden');
+    }
   </script>
 
   <!-- Nội dung chính -->

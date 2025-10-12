@@ -31,35 +31,4 @@
     </div>
   </nav>
   
-  <script>
-    // Toggle menu (mobile)
-    function toggleMenu() {
-      const menu = document.getElementById('mobile-menu');
-      if (menu) menu.classList.toggle('hidden');
-    }
-  
-    // Giả lập trạng thái IoT WiFi
-    document.addEventListener('DOMContentLoaded', () => {
-      const wifiIcon = document.getElementById('wifi-status');
-      if (!wifiIcon) return;
-  
-      let connected = false;
-  
-      function updateStatus() {
-        connected = !connected;
-        if (connected) {
-          wifiIcon.innerHTML = '📶';
-          wifiIcon.className = 'text-green-500 text-xl md:text-2xl animate-pulse';
-          wifiIcon.title = 'Đã kết nối IoT';
-        } else {
-          wifiIcon.innerHTML = '📴';
-          wifiIcon.className = 'text-red-500 text-xl md:text-2xl';
-          wifiIcon.title = 'Mất kết nối IoT';
-        }
-      }
-  
-      updateStatus();
-      setInterval(updateStatus, 5000);
-    });
-  </script>
   

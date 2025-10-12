@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Hẹn Giờ Uống Thuốc</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 text-gray-800 flex flex-col items-center">
 
@@ -12,7 +13,29 @@
   <script>
     fetch("menu.html")
       .then(res => res.text())
-      .then(html => document.getElementById("menu-container").innerHTML = html);
+      .then(html => {
+        document.getElementById("menu-container").innerHTML = html;
+        const socket = io();
+        socket.on('pill/data/status', (status) => {
+          const jsonStatus = JSON.parse(status);
+          const wifiIcon = document.getElementById('wifi-status');
+          if(!wifiIcon) console.log('wifiIcon not found');
+          console.log(jsonStatus.status);
+          if(jsonStatus.status === 'online') {
+            wifiIcon.innerHTML = '📶';
+            wifiIcon.className = 'text-green-500 text-xl md:text-2xl animate-pulse';
+            wifiIcon.title = 'Đã kết nối IoT';
+          } else {
+            wifiIcon.innerHTML = '📴';
+            wifiIcon.className = 'text-red-500 text-xl md:text-2xl';
+            wifiIcon.title = 'Mất kết nối IoT';
+          }
+        });
+      });
+    function toggleMenu() {
+      const menu = document.getElementById('mobile-menu');
+      if (menu) menu.classList.toggle('hidden');
+    }
   </script>
 
   <!-- Nội dung chính -->
@@ -56,7 +79,12 @@
                   bg-white shadow-md cursor-pointer font-semibold text-lg 
                   transition-all duration-300 hover:-translate-y-2 hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-xl"
           data-id="8">8</div>
-    </div>
+      <button onclick="setSchedule()" class=" w-24 h-24 flex items-center justify-center rounded-2xl border-2 border-gray-200 
+                  bg-white shadow-md cursor-pointer font-semibold text-lg 
+                  transition-all duration-300 hover:-translate-y-2 hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-xl">
+        🔄
+      </button>
+        </div>
 
     <!-- Khung chi tiết -->
     <div id="chiTiet" class="hidden flex-col items-center justify-center gap-5 w-96 max-w-full p-8 bg-white border-2 border-gray-100 rounded-2xl shadow-2xl transition-all duration-500">
@@ -109,37 +137,38 @@
     });
 
     // Lưu thời gian
-    async function luuThoiGian() {
+    function luuThoiGian() {
       if (!currentNgan) return;
 
       thoiGian[currentNgan] = {
         gio: gioInput.value,
         ngay: ngayInput.value
       };
-
+      alert('Lưu giờ thành công cho ngăn ' + currentNgan);
+      const nganEl = document.querySelector(`.ngan[data-id="${currentNgan}"]`);
+      nganEl.classList.add("bg-gradient-to-br", "from-green-400", "to-green-600", "text-white", "border-none", "shadow-lg", "scale-105");
+    }
+    async function setSchedule() {
       try {
-        const res = await fetch("/api/v1/led/on", {
+        const response = await fetch("/api/v1/schedule", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: 2, ngan: currentNgan, ...thoiGian[currentNgan] })
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          alert(data.message || "Lưu thành công!");
-
-          const nganEl = document.querySelector(`.ngan[data-id="${currentNgan}"]`);
-          nganEl.classList.add("bg-gradient-to-br", "from-green-400", "to-green-600", "text-white", "border-none", "shadow-lg", "scale-105");
+          body: JSON.stringify({mode:'custom',thoiGian})
+        });   
+  
+        if (response.ok) {
+          const result = await response.json();
+          alert(result.message);
         } else {
-          const errorData = await res.json();
-          alert(errorData.message || "Lỗi khi lưu dữ liệu.");
+          const errorData = await response.json();
+          alert('Lỗi: ' + errorData.message);
         }
       } catch (error) {
-        alert("Lỗi khi gọi API.");
-        console.error("Error:", error);
+        console.error('Error:', error);
+        alert('Lỗi khi kết nối đến máy chủ.');
       }
     }
   </script>
-
 </body>
 </html>
+
