@@ -23,3 +23,21 @@ export const getMeasurements = async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 };
+export const getMeasurement = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        // Lấy measurement mới nhất (sort by createdAt desc, limit 1)
+        const measurement = await Measurement.findOne({ userId })
+            .sort({ createdAt: -1 })
+            .limit(1);
+        
+        if (!measurement) {
+            return res.status(404).json({ error: "No measurement found for this user" });
+        }
+        
+        res.json(measurement);
+    } catch (error) {
+        console.error("Error getting measurement:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};

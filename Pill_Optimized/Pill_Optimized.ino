@@ -3,6 +3,13 @@
 #include <ESP32Servo.h>
 #include <time.h>
 #include <ArduinoJson.h>
+#include <Wire.h>
+#include "MAX30105.h"
+#include "heartRate.h"
+#include "spo2_algorithm.h"
+
+// ========== USER ID ==========
+const char* userId = "690583a8d3dde5f187c1cd58";
 
 // ========== CONFIGURATION ==========
 // WiFi Configuration
@@ -16,6 +23,7 @@ const char* mqtt_topic_sub = "pill/command/schedule";
 const char* mqtt_topic_pub = "pill/data/log";
 const char* mqtt_topic_status = "pill/data/status";
 const char* mqtt_topic_config = "pill/command/config";
+const char* mqtt_topic_measurement = "pill/data/measurement";
 
 // Hardware Configuration
 const int servoPin = 5;
@@ -36,6 +44,28 @@ const char* author_email = "ckhai.lam05@gmail.com";
 Servo myServo;
 WiFiClient espClient;
 PubSubClient client(espClient);
+MAX30105 particleSensor;
+
+// MAX3010x measurement variables
+bool measuring = false;
+const int MEASUREMENT_BUFFER_SIZE = 100;
+uint32_t irBuffer[MEASUREMENT_BUFFER_SIZE];
+uint32_t redBuffer[MEASUREMENT_BUFFER_SIZE];
+int bufferIndex = 0;
+
+// Heart rate calculation variables
+const byte RATE_SIZE = 4;
+byte rates[RATE_SIZE];
+byte rateSpot = 0;
+long lastBeat = 0;
+float beatsPerMinute;
+int beatAvg;
+
+// SpO2 and Heart Rate results
+int32_t spo2;
+int8_t validSPO2;
+int32_t heartRate;
+int8_t validHeartRate;
 
 // Schedule management
 struct ScheduleEntry {
@@ -305,6 +335,150 @@ void reconnectMQTT() {
   }
 }
 
+// ========== MAX3010x FUNCTIONS ==========
+bool initializeMAX3010x() {
+  if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) {
+    Serial.println("❌ MAX3010x not found. Please check wiring/power.");
+    return false;
+  }
+  
+  Serial.println("✅ MAX3010x found!");
+  
+  // Configure sensor
+  byte ledBrightness = 0x1F; // Options: 0=Off to 255=50mA
+  byte sampleAverage = 4; // Options: 1, 2, 4, 8, 16, 32
+  byte ledMode = 2; // Options: 1 = Red only, 2 = Red + IR, 3 = Red + IR + Green
+  int sampleRate = 100; // Options: 50, 100, 200, 400, 800, 1000, 1600, 3200
+  int pulseWidth = 411; // Options: 69, 118, 215, 411
+  int adcRange = 4096; // Options: 2048, 4096, 8192, 16384
+  
+  particleSensor.setup(ledBrightness, sampleAverage, ledMode, sampleRate, pulseWidth, adcRange);
+  particleSensor.setPulseAmplitudeRed(0x0A);
+  particleSensor.setPulseAmplitudeIR(0x0A);
+  
+  // Initialize buffers
+  bufferIndex = 0;
+  lastBeat = 0;
+  beatAvg = 0;
+  
+  return true;
+}
+
+void startMeasurement() {
+  if (measuring) {
+    return;
+  }
+  
+  Serial.println("🫀 Starting measurement...");
+  measuring = true;
+  bufferIndex = 0;
+  lastBeat = 0;
+  
+  // Clear buffers
+  for (int i = 0; i < MEASUREMENT_BUFFER_SIZE; i++) {
+    irBuffer[i] = 0;
+    redBuffer[i] = 0;
+  }
+  
+  // Reset heart rate variables
+  for (byte x = 0; x < RATE_SIZE; x++) {
+    rates[x] = 0;
+  }
+  rateSpot = 0;
+  
+  blinkLED(2, 100);
+}
+
+void collectMeasurementData() {
+  if (!measuring) return;
+  
+  // Read sensor values
+  uint32_t irValue = particleSensor.getIR();
+  uint32_t redValue = particleSensor.getRed();
+  
+  // Debug: print values occasionally
+  if (bufferIndex % 20 == 0) {
+    Serial.printf("📊 IR: %lu, Red: %lu, Progress: %d/%d\n", irValue, redValue, bufferIndex, MEASUREMENT_BUFFER_SIZE);
+  }
+  
+  if (irValue < 50000) {
+    // Finger removed during measurement
+    if (bufferIndex > 10) {
+      Serial.println("⚠️ Finger removed - Resetting measurement");
+      measuring = false;
+      bufferIndex = 0;
+    }
+    return;
+  }
+  
+  // Store in buffers
+  if (bufferIndex < MEASUREMENT_BUFFER_SIZE) {
+    irBuffer[bufferIndex] = irValue;
+    redBuffer[bufferIndex] = redValue;
+    bufferIndex++;
+    
+    // Check for heartbeat
+    if (checkForBeat((long)irValue) == true) {
+      long delta = millis() - lastBeat;
+      lastBeat = millis();
+      beatsPerMinute = 60 / (delta / 1000.0);
+      
+      if (beatsPerMinute < 255 && beatsPerMinute > 20) {
+        rates[rateSpot++] = (byte)beatsPerMinute;
+        rateSpot %= RATE_SIZE;
+        beatAvg = 0;
+        for (byte x = 0; x < RATE_SIZE; x++) {
+          beatAvg += rates[x];
+        }
+        beatAvg /= RATE_SIZE;
+      }
+    }
+  } else {
+    // Buffer full, calculate SpO2 and Heart Rate
+    Serial.println("🔄 Calculating results...");
+    maxim_heart_rate_and_oxygen_saturation(irBuffer, MEASUREMENT_BUFFER_SIZE, redBuffer, &spo2, &validSPO2, &heartRate, &validHeartRate);
+    
+    if (validSPO2 && validHeartRate) {
+      sendMeasurementData(beatAvg > 0 ? beatAvg : heartRate, spo2, particleSensor.readTemperature());
+      Serial.printf("✅ Measurement complete: HR=%d, SpO2=%d%%, Temp=%.1f°C\n", 
+                   beatAvg > 0 ? beatAvg : heartRate, spo2, particleSensor.readTemperature());
+    } else {
+      Serial.println("❌ Invalid measurement, please try again");
+    }
+    
+    measuring = false;
+    bufferIndex = 0;
+  }
+}
+
+void sendMeasurementData(int heartRate, int spo2, float temperature) {
+  DynamicJsonDocument doc(256);
+  doc["userId"] = userId;
+  doc["heart_beat"] = heartRate;
+  doc["spo2"] = spo2;
+  doc["temp"] = temperature;
+  doc["timestamp"] = millis();
+  
+  char currentTime[20];
+  struct tm timeinfo;
+  if (getLocalTime(&timeinfo)) {
+    sprintf(currentTime, "%04d-%02d-%02d %02d:%02d:%02d",
+            timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
+            timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    doc["datetime"] = currentTime;
+  }
+  
+  String measurementJson;
+  serializeJson(doc, measurementJson);
+  
+  if (client.connected()) {
+    client.publish(mqtt_topic_measurement, measurementJson.c_str());
+    Serial.printf("📤 Published to MQTT: %s\n", measurementJson.c_str());
+  } else {
+    Serial.println("❌ MQTT not connected, measurement not sent");
+  }
+}
+
 // ========== SCHEDULE CHECKING ==========
 void checkSchedule() {
   if (scheduleCount == 0 || !ntpSynced) return;
@@ -337,8 +511,23 @@ void setup() {
   myServo.attach(servoPin);
   myServo.write(servoCloseAngle);
   
+  // Initialize I2C for MAX3010x
+  Wire.begin();
+  
+  // Initialize MAX3010x sensor
+  if (!initializeMAX3010x()) {
+    Serial.println("⚠️ MAX3010x initialization failed, continuing without sensor");
+  }
+  
   // Initialize schedule
   clearSchedule();
+  
+  // Initialize heart rate variables
+  for (byte x = 0; x < RATE_SIZE; x++) {
+    rates[x] = 0;
+  }
+  rateSpot = 0;
+  lastBeat = 0;
   
   // Connect to WiFi
   Serial.printf("📶 Connecting to WiFi: %s\n", ssid);
@@ -386,23 +575,43 @@ void loop() {
   // Check schedule
   checkSchedule();
   
-  // Send periodic status updates
-  if (millis() - lastStatusUpdate > statusUpdateInterval) {
-    sendStatusReport();
-    lastStatusUpdate = millis();
-  }
-  
-  // Heartbeat LED
-  if (systemOnline && ntpSynced) {
-    static unsigned long lastHeartbeat = 0;
-    if (millis() - lastHeartbeat > 10000) { // Every 10 seconds
-      setLED(HIGH);
-      delay(50);
-      setLED(LOW);
-      lastHeartbeat = millis();
+  // Auto-detect finger and start measurement
+  if (!measuring) {
+    static unsigned long lastFingerCheck = 0;
+    if (millis() - lastFingerCheck > 500) { // Check every 500ms
+      uint32_t irValue = particleSensor.getIR();
+      Serial.println(irValue);
+      if (irValue > 50000) {
+        Serial.println("👆 Finger detected - Starting measurement automatically...");
+        startMeasurement();
+      }
+      lastFingerCheck = millis();
     }
   }
   
-  delay(1000); // Main loop delay
-}
+  // Collect measurement data if measuring
+  if (measuring) {
+    collectMeasurementData();
+    delay(10); // Fast reading for measurement (100Hz)
+  } else {
+    // Send periodic status updates
+    if (millis() - lastStatusUpdate > statusUpdateInterval) {
+      sendStatusReport();
+      lastStatusUpdate = millis();
+    }
+    
+    // Heartbeat LED
+    if (systemOnline && ntpSynced) {
+      static unsigned long lastHeartbeat = 0;
+      if (millis() - lastHeartbeat > 10000) { // Every 10 seconds
+        setLED(HIGH);
+        delay(50);
+        setLED(LOW);
+        lastHeartbeat = millis();
+      }
+    }
+    
+    delay(100); // Normal delay when not measuring
+  }
+}                                                                                                                             
 
