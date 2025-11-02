@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>📄 OCR & AI Đơn Thuốc</title>
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tesseract.js -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col items-center p-6">
+    <h1 class="text-2xl md:text-3xl font-bold text-blue-600 mb-6">📷 OCR & AI Xử Lý Đơn Thuốc</h1>
+
+    <!-- Upload Box -->
+    <div class="border-2 border-dashed border-blue-500 rounded-2xl bg-white p-8 max-w-sm w-full text-center cursor-pointer hover:bg-blue-50 transition"
+        onclick="document.getElementById('fileInput').click()">
+        <p class="text-gray-600">📸 Bấm để tải hoặc chụp ảnh đơn thuốc</p>
+        <input type="file" accept="image/*" id="fileInput" class="hidden" capture="camera">
+    </div>
+
+    <!-- Preview -->
+    <div
+        class="mt-4 w-72 h-48 border border-gray-300 rounded-lg flex items-center justify-center bg-white overflow-hidden">
+        <img id="preview" alt="Ảnh đơn thuốc" class="max-w-full max-h-full hidden">
+    </div>
+
+    <!-- Manual Input -->
+    <div class="mt-6 w-full max-w-lg text-center">
+        <h3 class="text-lg font-semibold mb-2">✍️ Hoặc nhập nội dung OCR thủ công</h3>
+        <textarea id="manualInput" placeholder="Nhập văn bản OCR hoặc nội dung đơn thuốc..."
+            class="w-full h-32 border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-400 outline-none"></textarea>
+        <button id="sendBtn"
+            class="mt-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded-lg shadow">
+            Gửi đến AI
+        </button>
+    </div>
+
+    <!-- Results -->
+    <div class="mt-8 w-full max-w-5xl flex flex-col md:flex-row gap-4">
+        <div class="flex-1 bg-white rounded-xl shadow p-4">
+            <h4 class="font-semibold text-gray-700 mb-2">📝 Kết quả OCR</h4>
+            <div id="ocrTextBox" class="text-sm text-gray-800 whitespace-pre-wrap overflow-y-auto max-h-[500px]">
+                ⏳ Kết quả OCR sẽ hiển thị ở đây...
+            </div>
+        </div>
+
+        <div class="flex-1 bg-white rounded-xl shadow p-4">
+            <h4 class="font-semibold text-gray-700 mb-2">🤖 Kết quả AI</h4>
+            <div id="aiResultBox" class="text-sm text-gray-800 whitespace-pre-wrap overflow-y-auto max-h-[500px]">
+                🤖 Kết quả AI xử lý sẽ hiển thị ở đây...
+            </div>
+        </div>
+    </div>
+
+    <!-- Script -->
+    <script>
+        const fileInput = document.getElementById("fileInput");
+        const preview = document.getElementById("preview");
+        const ocrBox = document.getElementById("ocrTextBox");
+        const aiBox = document.getElementById("aiResultBox");
+        const sendBtn = document.getElementById("sendBtn");
+
+        fileInput.addEventListener("change", handleImage);
+        sendBtn.addEventListener("click", sendManualText);
+
+        async function handleImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function (e) {
+                preview.src = e.target.result;
+                preview.classList.remove("hidden");
+
+                ocrBox.textContent = "⏳ Đang nhận dạng văn bản...";
+                aiBox.textContent = "🤖 Đang chờ kết quả từ AI...";
+
+                try {
+                    const { data: { text } } = await Tesseract.recognize(
+                        e.target.result, 'vie+eng', { logger: info => console.log(info) }
+                    );
+                    ocrBox.textContent = text.trim() || "Không đọc được văn bản từ ảnh.";
+                    if (text.trim()) sendToAI(text);
+                } catch (err) {
+                    console.error("Lỗi OCR:", err);
+                    ocrBox.textContent = "❌ Lỗi khi đọc ảnh.";
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function sendManualText() {
+            const text = document.getElementById("manualInput").value.trim();
+            if (!text) return alert("⚠️ Vui lòng nhập nội dung trước khi gửi!");
+            ocrBox.textContent = text;
+            aiBox.textContent = "🧠 Đang gửi đến AI xử lý...";
+            await sendToAI(text);
+        }
+
+        async function sendToAI(text) {
+            try {
+                const response = await fetch("/api/v1/gemini", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text }),
+                });
+                const data = await response.json();
+                aiBox.textContent = data.result || "⚠️ Không có phản hồi từ AI.";
+            } catch (err) {
+                console.error("Lỗi gọi API:", err);
+                aiBox.textContent = "❌ Lỗi khi gọi AI.";
+            }
+        }
+    </script>
+</body>
+
+</html>

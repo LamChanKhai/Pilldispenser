@@ -9,7 +9,11 @@ export const PORT = process.env.PORT || 3000;
 export const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL;
 export const DB_URI = process.env.DB_URI;
 export const NODE_ENV = process.env.NODE_ENV || 'development';
+
 export const DEFAULT_USER_ID = process.env.DEFAULT_USER_ID || null;
+
+export const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+export const GEMINI_MODEL = process.env.GEMINI_MODEL;
 
 // Debug log để kiểm tra trên Vercel (xem trong log)
 if (!DB_URI) {

@@ -6,9 +6,11 @@ import { createServer } from "http";
 import scheduleRouter from "./routes/schedule.route.js";
 import measurementRouter from "./routes/measurement.route.js";
 import userRouter from "./routes/user.route.js";
+import geminiRouter from "./routes/gemini.route.js";
 import { PORT } from "./config/env.js";
 import { Server } from "socket.io";
 import connecToDatabase from "./database/mongodb.js";
+
 // Fix __dirname trong ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,14 +31,15 @@ app.use(express.static(path.join(__dirname, "public")));
 
 io.on("connection", (socket) => {
   console.log("A user connected");
-
 });
-
 
 // Routes
 app.use("/api/v1/schedule", scheduleRouter);
 app.use("/api/v1/measurement", measurementRouter);
 app.use("/api/v1/user", userRouter);
+
+app.use("/api/v1/gemini", geminiRouter);
+
 
 // Start server
 server.listen(PORT, async () => {
