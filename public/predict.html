@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Dự đoán huyết áp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+    <div class="max-w-3xl mx-auto mt-10 p-6 bg-white shadow-xl rounded-2xl">
+        <h2 class="text-3xl font-bold mb-6 text-blue-600 text-center">
+            Chuẩn đoán mức huyết áp & dự đoán nguy cơ tăng huyết áp
+        </h2>
+
+        <form id="predictForm" class="space-y-8">
+
+            <!-- male -->
+            <div class="p-4 bg-blue-50 rounded-xl shadow-inner">
+                <h3 class="text-xl font-semibold mb-4 text-blue-700">✨ Thông tin cá nhân</h3>
+                <div class="flex flex-col md:flex-row items-center mb-4">
+                    <i class="fas fa-user text-blue-500 mr-2 w-6"></i>
+                    <label class="w-1/3 font-medium">Giới tính</label>
+                    <div class="flex gap-4 w-2/3 mt-2 md:mt-0">
+                        <label class="flex items-center gap-1"><input type="radio" name="male" value="1" /> Nam</label>
+                        <label class="flex items-center gap-1"><input type="radio" name="male" value="0" /> Nữ</label>
+                    </div>
+                </div>
+
+                <!-- age -->
+                <div class="flex flex-col md:flex-row items-center mb-4">
+                    <i class="fas fa-birthday-cake text-pink-500 mr-2 w-6"></i>
+                    <label class="w-1/3 font-medium">Tuổi</label>
+                    <input type="number" name="age" class="w-2/3 mt-2 md:mt-0 p-2 border rounded-lg" min="0" />
+                </div>
+
+                <!-- currentSmoker -->
+                <div class="flex flex-col md:flex-row items-center mb-4">
+                    <i class="fas fa-smoking text-gray-700 mr-2 w-6"></i>
+                    <label class="w-1/3 font-medium">Hút thuốc</label>
+                    <div class="flex gap-4 w-2/3 mt-2 md:mt-0">
+                        <label class="flex items-center gap-1"><input type="radio" name="currentSmoker" value="1" />
+                            Có</label>
+                        <label class="flex items-center gap-1"><input type="radio" name="currentSmoker" value="0" />
+                            Không</label>
+                    </div>
+                </div>
+
+                <!-- cigsPerDay -->
+                <div class="flex flex-col md:flex-row items-center mb-4">
+                    <i class="fas fa-cigarette text-gray-700 mr-2 w-6"></i>
+                    <label class="w-1/3 font-medium">Số điếu thuốc/ngày</label>
+                    <input type="number" name="cigsPerDay" class="w-2/3 mt-2 md:mt-0 p-2 border rounded-lg" min="0" />
+                </div>
+
+                <!-- BPMeds -->
+                <div class="flex flex-col md:flex-row items-center mb-4">
+                    <i class="fas fa-prescription-bottle-alt text-pink-500 mr-2 w-6"></i>
+                    <label class="w-1/3 font-medium">Thuốc huyết áp</label>
+                    <div class="flex gap-4 w-2/3 mt-2 md:mt-0">
+                        <label class="flex items-center gap-1"><input type="radio" name="BPMeds" value="1" /> Có</label>
+                        <label class="flex items-center gap-1"><input type="radio" name="BPMeds" value="0" />
+                            Không</label>
+                    </div>
+                </div>
+
+                <!-- diabetes -->
+                <div class="flex flex-col md:flex-row items-center mb-4">
+                    <i class="fas fa-notes-medical text-green-500 mr-2 w-6"></i>
+                    <label class="w-1/3 font-medium">Tiểu đường</label>
+                    <div class="flex gap-4 w-2/3 mt-2 md:mt-0">
+                        <label class="flex items-center gap-1"><input type="radio" name="diabetes" value="1" />
+                            Có</label>
+                        <label class="flex items-center gap-1"><input type="radio" name="diabetes" value="0" />
+                            Không</label>
+                    </div>
+                </div>
+
+                <!-- totChol -->
+                <div class="flex flex-col md:flex-row items-center mb-4">
+                    <i class="fas fa-heart text-red-700 mr-2 w-6"></i>
+                    <label class="w-1/3 font-medium">Tổng cholesterol</label>
+                    <input type="number" name="totChol" class="w-2/3 mt-2 md:mt-0 p-2 border rounded-lg" min="0" />
+                </div>
+
+                <!-- sysBP -->
+                <div class="flex flex-col md:flex-row items-center mb-4">
+                    <i class="fas fa-tachometer-alt text-green-500 mr-2 w-6"></i>
+                    <label class="w-1/3 font-medium">Huyết áp tâm thu</label>
+                    <input type="number" name="sysBP" class="w-2/3 mt-2 md:mt-0 p-2 border rounded-lg" />
+                </div>
+
+                <!-- diaBP -->
+                <div class="flex flex-col md:flex-row items-center mb-4">
+                    <i class="fas fa-heartbeat text-red-500 mr-2 w-6"></i>
+                    <label class="w-1/3 font-medium">Huyết áp tâm trương</label>
+                    <input type="number" name="diaBP" class="w-2/3 mt-2 md:mt-0 p-2 border rounded-lg" />
+                </div>
+
+                <!-- BMI -->
+                <div class="flex flex-col md:flex-row items-center mb-4">
+                    <i class="fas fa-weight scale-105 text-purple-500 mr-2 w-6"></i>
+                    <label class="w-1/3 font-medium">BMI</label>
+                    <input type="number" name="BMI" class="w-2/3 mt-2 md:mt-0 p-2 border rounded-lg" />
+                </div>
+
+                <!-- heartRate -->
+                <div class="flex flex-col md:flex-row items-center mb-4">
+                    <i class="fas fa-heart text-red-500 mr-2 w-6"></i>
+                    <label class="w-1/3 font-medium">Nhịp tim</label>
+                    <input type="number" name="heartRate" class="w-2/3 mt-2 md:mt-0 p-2 border rounded-lg" />
+                </div>
+
+                <!-- glucose -->
+                <div class="flex flex-col md:flex-row items-center mb-4">
+                    <i class="fas fa-vial text-yellow-500 mr-2 w-6"></i>
+                    <label class="w-1/3 font-medium">Glucose</label>
+                    <input type="number" name="glucose" class="w-2/3 mt-2 md:mt-0 p-2 border rounded-lg" />
+                </div>
+
+            </div>
+
+            <button type="submit"
+                class="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white text-lg font-semibold rounded-xl shadow-md hover:from-blue-600 hover:to-blue-800 transition-all">
+                Dự đoán
+            </button>
+        </form>
+
+        <div class="mt-6 p-4 bg-gray-50 border rounded-xl shadow-inner" id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById("predictForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            // // --- Tính BMI từ cân nặng và chiều cao ---
+            // const weight = parseFloat(document.getElementById("weight").value);
+            // const height = parseFloat(document.getElementById("height").value) / 100;
+            // data.BMI = weight && height ? (weight / (height * height)).toFixed(2) : 25;
+
+            try {
+                const res = await fetch("/api/predict", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const result = await res.json();
+
+                document.getElementById("result").innerHTML = `
+                    <h4 class="text-xl font-semibold mb-2 text-green-600">Kết quả:</h4>
+                    <p>Mức huyết áp: <span class="font-medium">${result.BP_Level}</span></p>
+                    <p>Xác suất tăng huyết áp: <span class="font-medium">${result.Hypertension_Risk}</span></p>
+                `;
+            } catch (err) {
+                document.getElementById("result").innerHTML = `<p class="text-red-500">Lỗi khi gọi API: ${err}</p>`;
+            }
+        });
+    </script>
+</body>
+
+</html>

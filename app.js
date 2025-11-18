@@ -10,6 +10,7 @@ import geminiRouter from "./routes/gemini.route.js";
 import { PORT } from "./config/env.js";
 import { Server } from "socket.io";
 import connecToDatabase from "./database/mongodb.js";
+import predictRoute from "./routes/predict.route.js";
 
 // Fix __dirname trong ES module
 const __filename = fileURLToPath(import.meta.url);
@@ -40,6 +41,7 @@ app.use("/api/v1/user", userRouter);
 
 app.use("/api/v1/gemini", geminiRouter);
 
+app.use("/api/predict", predictRoute);
 
 // Start server
 server.listen(PORT, async () => {
