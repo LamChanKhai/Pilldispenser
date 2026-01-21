@@ -1,0 +1,12 @@
+﻿giá trị,loại dữ liệu,giá trị trung bình,độ lệch chuẩn
+male,binary,0.4292,0.495
+age,numeric,49.5802,8.5729
+currentSmoker,binary,0.4941,0.5
+cigsPerDay,numeric,9.0059,11.9225
+BPMeds,binary,0.0296,0.1695
+diabetes,binary,0.0257,0.1583
+sysBP,numeric,132.3546,22.0333
+diaBP,numeric,82.8978,11.9104
+BMI,numeric,25.8008,4.0798
+heartRate,numeric,75.879,12.0253
+Risk,binary,0.3106,0.4628

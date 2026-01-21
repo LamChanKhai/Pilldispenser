@@ -3,29 +3,34 @@ import { spawn } from "child_process";
 
 const router = express.Router();
 
-// POST /api/predict
 router.post("/", (req, res) => {
     const inputData = req.body;
 
-    const py = spawn("python", ["ml/predict_from_json.py", JSON.stringify(inputData)]);
+    const py = spawn(
+        "ml/env_kltn/Scripts/python.exe",
+        ["ml/predict_ann.py", JSON.stringify(inputData)]
+    );
 
-    let dataToSend = "";
+    let output = "";
+
     py.stdout.on("data", (data) => {
-        dataToSend += data.toString();
+        output += data.toString();
     });
 
     py.stderr.on("data", (data) => {
-        console.error(data.toString());
+        console.warn("Python warning:", data.toString());
     });
 
     py.on("close", () => {
         try {
-            res.json(JSON.parse(dataToSend));
+            res.json(JSON.parse(output));
         } catch (err) {
-            res.status(500).send({ error: "Prediction failed" });
+            res.status(500).json({
+                error: "Prediction failed",
+                raw: output
+            });
         }
     });
 });
 
-// ⚡ Đây là export default
 export default router;
