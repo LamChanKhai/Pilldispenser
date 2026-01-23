@@ -6,6 +6,13 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
 # ===============================
+# TẮT WARNINGS
+# ===============================
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", message=".*np.object.*")
+
+# ===============================
 # IMPORT
 # ===============================
 import sys
@@ -21,7 +28,37 @@ from tensorflow.keras.models import load_model
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 try:
-    model = load_model(os.path.join(BASE_DIR, "hypertension_model.keras"))
+    model_path_keras = os.path.join(BASE_DIR, "hypertension_model.keras")
+    model_path_h5 = os.path.join(BASE_DIR, "hypertension_model.h5")
+    
+    # Thử load .keras trước
+    if os.path.exists(model_path_keras):
+        try:
+            # Thử load với safe_mode=False cho Keras 3.x
+            try:
+                model = load_model(model_path_keras, safe_mode=False)
+            except TypeError:
+                # Nếu safe_mode không được hỗ trợ (Keras 2.x), load bình thường
+                try:
+                    model = load_model(model_path_keras)
+                except Exception:
+                    # Nếu vẫn lỗi, thử load với compile=False
+                    model = load_model(model_path_keras, compile=False)
+        except Exception as e1:
+            # Nếu .keras lỗi, thử .h5
+            if os.path.exists(model_path_h5):
+                try:
+                    model = load_model(model_path_h5)
+                except Exception as e2:
+                    raise Exception(f"Both .keras and .h5 failed. .keras: {str(e1)}, .h5: {str(e2)}")
+            else:
+                raise e1
+    elif os.path.exists(model_path_h5):
+        # Chỉ có .h5
+        model = load_model(model_path_h5)
+    else:
+        raise Exception("No model file found (hypertension_model.keras or hypertension_model.h5)")
+    
     scaler = joblib.load(os.path.join(BASE_DIR, "scaler.pkl"))
     feature_names = joblib.load(os.path.join(BASE_DIR, "feature_names.pkl"))
 except Exception as e:
@@ -32,9 +69,17 @@ except Exception as e:
 # NHẬN INPUT JSON
 # ===============================
 try:
-    input_json = json.loads(sys.argv[1])
-except Exception:
-    print(json.dumps({"error": "Invalid JSON input"}))
+    # Thử đọc từ command line argument
+    if len(sys.argv) > 1:
+        input_json = json.loads(sys.argv[1])
+    else:
+        # Nếu không có argv, đọc từ stdin
+        input_json = json.loads(sys.stdin.read())
+except json.JSONDecodeError as e:
+    print(json.dumps({"error": f"Invalid JSON input: {str(e)}"}))
+    sys.exit(1)
+except Exception as e:
+    print(json.dumps({"error": f"Invalid JSON input: {str(e)}"}))
     sys.exit(1)
 
 # ===============================

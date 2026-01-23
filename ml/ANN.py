@@ -69,7 +69,15 @@ model.fit(
 # ======================
 # 3. SAVE FOR WEB
 # ======================
-model.save('hypertension_model.keras')
+# Lưu model với format tương thích
+try:
+    # Thử lưu dạng .keras (Keras 3.x)
+    model.save('hypertension_model.keras')
+except Exception:
+    # Nếu lỗi, lưu dạng .h5 (tương thích hơn)
+    model.save('hypertension_model.h5')
+    print("⚠️  Saved as .h5 format for compatibility")
+
 joblib.dump(scaler, 'scaler.pkl')
 joblib.dump(X.columns.tolist(), 'feature_names.pkl')
 
