@@ -41,7 +41,5 @@ extern const char* USER_ID;
 #define SAMPLE_RATE 16000
 
 // ==================== BOT ====================
-#define TELEGRAM_BOT_TOKEN "8317072478:AAG8gkuIb6cPVS9JRoYhonTAGijq_tilO5Q"
-#define TELEGRAM_CHAT_ID  "6181402623"
 
 #endif
