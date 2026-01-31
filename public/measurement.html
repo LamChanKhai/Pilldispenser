@@ -1,15 +1,23 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Đo Chỉ Số Sức Khỏe</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-indigo-100 text-gray-800 flex flex-col items-center">
 
-  <!-- Menu -->
-  <div id="menu-container"></div>
+<body class="min-h-screen bg-[#F0F4F8] flex flex-col items-center">
+
+  <div id="menu-container" class="w-full"></div>
   <script>
     fetch("menu.html")
       .then(res => res.text())
@@ -19,71 +27,103 @@
         socket.on('pill/data/status', (status) => {
           const jsonStatus = JSON.parse(status);
           const wifiIcon = document.getElementById('wifi-status');
-          if(!wifiIcon) console.log('wifiIcon not found');
-          console.log(jsonStatus.status);
-          if(jsonStatus.status === 'online') {
-            wifiIcon.innerHTML = '📶';
-            wifiIcon.className = 'text-green-500 text-xl md:text-2xl animate-pulse';
-            wifiIcon.title = 'Đã kết nối IoT';
-          } else {
-            wifiIcon.innerHTML = '📴';
-            wifiIcon.className = 'text-red-500 text-xl md:text-2xl';
-            wifiIcon.title = 'Mất kết nối IoT';
+          if (wifiIcon) {
+            wifiIcon.innerHTML = jsonStatus.status === 'online' ? '📶' : '📴';
+            wifiIcon.className = jsonStatus.status === 'online' ? 'text-green-500 text-xl animate-pulse' : 'text-red-500 text-xl';
           }
         });
       });
-    function toggleMenu() {
-      const menu = document.getElementById('mobile-menu');
-      if (menu) menu.classList.toggle('hidden');
-    }
   </script>
 
-  <!-- Nội dung chính -->
-  <main class="mt-28 w-full max-w-5xl px-6 pb-16 flex flex-col items-center">
-    <h1 class="text-3xl font-bold text-indigo-600 mb-10 tracking-wide text-center">
-      🩺 Đo Chỉ Số Sinh Học Cơ Thể
-    </h1>
+  <main class="pt-32 pb-16 px-6 w-full max-w-5xl flex flex-col items-center">
 
-    <!-- 3 chỉ số -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 w-full">
-      <!-- Nhiệt độ -->
-      <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
-        <div class="text-5xl mb-3">🌡️</div>
-        <h2 class="text-lg font-semibold text-gray-700 mb-2">Nhiệt độ cơ thể</h2>
-        <p id="tempValue" class="text-3xl font-bold text-blue-600">-- °C</p>
+    <header class="text-center mb-12">
+      <h1 class="text-2xl font-extrabold text-indigo-700 tracking-tight">
+        🩺 Theo Dõi Chỉ Số Sinh Hóa
+      </h1>
+      <p class="text-gray-500 mt-2">Dữ liệu được cập nhật trực tiếp từ thiết bị đeo</p>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+
+      <div
+        class="bg-white rounded-3xl shadow-xl border border-red-50 p-8 flex flex-col items-center transition-all hover:shadow-2xl hover:-translate-y-1">
+        <div class="bg-red-50 p-4 rounded-full mb-4">
+          <span class="text-5xl">❤️</span>
+        </div>
+        <h2 class="text-xl font-bold text-gray-800 mb-6">Huyết áp & Nhịp tim</h2>
+
+        <div class="flex justify-around w-full border-t border-gray-100 pt-6">
+          <div class="text-center">
+            <p class="text-sm text-gray-400 font-medium uppercase tracking-wider">Nhịp tim</p>
+            <p id="bpValue" class="text-3xl font-black text-red-500 mt-1">-- <span
+                class="text-lg font-normal">bpm</span></p>
+          </div>
+          <div class="w-px bg-gray-100"></div>
+          <div class="text-center">
+            <p class="text-sm text-gray-400 font-medium uppercase tracking-wider">Huyết áp</p>
+            <p class="text-3xl font-black text-gray-700 mt-1">120/80 <span
+                class="text-lg font-normal text-gray-400">mmHg</span></p>
+          </div>
+        </div>
       </div>
 
-      <!-- Nồng độ Oxi -->
-      <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
-        <div class="text-5xl mb-3">🫁</div>
-        <h2 class="text-lg font-semibold text-gray-700 mb-2">Oxi trong máu (SpO₂)</h2>
-        <p id="oxygenValue" class="text-3xl font-bold text-green-600">-- %</p>
+      <div
+        class="bg-white rounded-3xl shadow-xl border border-blue-50 p-8 flex flex-col items-center transition-all hover:shadow-2xl hover:-translate-y-1">
+        <div class="bg-blue-50 p-4 rounded-full mb-4">
+          <span class="text-5xl">🌬️</span>
+        </div>
+        <h2 class="text-xl font-bold text-gray-800 mb-6">Oxi máu & Nhiệt độ</h2>
+
+        <div class="flex justify-around w-full border-t border-gray-100 pt-6">
+          <div class="text-center">
+            <p class="text-sm text-gray-400 font-medium uppercase tracking-wider">SpO₂</p>
+            <p id="oxygenValue" class="text-3xl font-black text-blue-600 mt-1">-- <span
+                class="text-lg font-normal">%</span></p>
+          </div>
+          <div class="w-px bg-gray-100"></div>
+          <div class="text-center">
+            <p class="text-sm text-gray-400 font-medium uppercase tracking-wider">Nhiệt độ</p>
+            <p id="tempValue" class="text-3xl font-black text-emerald-500 mt-1">-- <span
+                class="text-lg font-normal">°C</span></p>
+          </div>
+        </div>
       </div>
 
-      <!-- Huyết áp -->
-      <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
-        <div class="text-5xl mb-3">❤️</div>
-        <h2 class="text-lg font-semibold text-gray-700 mb-2">Huyết áp</h2>
-        <p id="bpValue" class="text-3xl font-bold text-red-500">-- / -- mmHg</p>
-      </div>
     </div>
 
-    <!-- Kết quả chi tiết -->
+    <button onclick="fetchData()"
+      class="mt-12 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95">
+      Làm mới dữ liệu 🔄
+    </button>
 
   </main>
 
   <script>
-    // Gọi API /api/v1/measurement/:userId
-    const userId = localStorage.getItem('userId');
-    console.log(userId);
-    fetch(`/api/v1/measurement/690583a8d3dde5f187c1cd58`)
-      .then(res => res.json())
-      .then(data => {
-        console.log(data);
-        document.getElementById("tempValue").textContent = data.temp + " °C";
-        document.getElementById("oxygenValue").textContent = data.spo2 + " %";
-        document.getElementById("bpValue").textContent = data.heart_beat + " bpm";
-      });
+    function fetchData() {
+      // Thay ID bằng userId thực tế của bạn
+      const userId = "690583a8d3dde5f187c1cd58";
+
+      fetch(`/api/v1/measurement/${userId}`)
+        .then(res => res.json())
+        .then(data => {
+          console.log("Dữ liệu nhận được:", data);
+          document.getElementById("tempValue").innerHTML = `${data.temp} <span class="text-lg font-normal">°C</span>`;
+          document.getElementById("oxygenValue").innerHTML = `${data.spo2} <span class="text-lg font-normal">%</span>`;
+          document.getElementById("bpValue").innerHTML = `${data.heart_beat} <span class="text-lg font-normal">bpm</span>`;
+        })
+        .catch(err => {
+          console.error("Lỗi khi tải dữ liệu:", err);
+        });
+    }
+
+    // Tự động tải dữ liệu khi trang web mở
+    window.onload = fetchData;
+
+    // Cập nhật mỗi 30 giây
+    setInterval(fetchData, 30000);
   </script>
+
 </body>
+
 </html>

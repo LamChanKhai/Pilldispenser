@@ -14,105 +14,140 @@
 </head>
 
 <body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <!-- Menu -->
+    <div id="menu-container"></div>
+    <script>
+        fetch("menu.html")
+            .then(res => res.text())
+            .then(html => {
+                document.getElementById("menu-container").innerHTML = html;
+                const socket = io();
+                socket.on('pill/data/status', (status) => {
+                    const jsonStatus = JSON.parse(status);
+                    const wifiIcon = document.getElementById('wifi-status');
+                    if (!wifiIcon) console.log('wifiIcon not found');
+                    console.log(jsonStatus.status);
+                    if (jsonStatus.status === 'online') {
+                        wifiIcon.innerHTML = '📶';
+                        wifiIcon.className = 'text-green-500 text-xl md:text-2xl animate-pulse';
+                        wifiIcon.title = 'Đã kết nối IoT';
+                    } else {
+                        wifiIcon.innerHTML = '📴';
+                        wifiIcon.className = 'text-red-500 text-xl md:text-2xl';
+                        wifiIcon.title = 'Mất kết nối IoT';
+                    }
+                });
+            });
+        function toggleMenu() {
+            const menu = document.getElementById('mobile-menu');
+            if (menu) menu.classList.toggle('hidden');
+        }
+    </script>
 
-    <div class="bg-white shadow-lg rounded-xl p-8 w-full max-w-2xl">
-        <h2 class="text-2xl font-bold text-center mb-6 text-red-700">
-            🫀 Dự đoán nguy cơ tăng huyết áp
-        </h2>
+    <main class="pt-32 pb-16 px-6 w-full max-w-5xl flex flex-col items-center">
 
-        <form id="predictForm" class="space-y-4">
 
-            <!-- Giới tính -->
-            <div class="flex items-center">
-                <i class="fas fa-venus-mars text-blue-600 w-6"></i>
-                <label class="w-1/3 font-medium">Giới tính</label>
-                <select name="male" class="w-2/3 p-2 border rounded-lg" required>
-                    <option value="1">Nam</option>
-                    <option value="0">Nữ</option>
-                </select>
-            </div>
+        <div class="bg-white shadow-lg rounded-xl p-8 w-full max-w-2xl">
+            <header class="text-center mb-12">
+                <h2 class="text-2xl font-bold text-center mb-6 text-red-700">
+                    🫀 Dự đoán nguy cơ tăng huyết áp
+                </h2>
+            </header>
 
-            <!-- Tuổi -->
-            <div class="flex items-center">
-                <i class="fas fa-user text-gray-600 w-6"></i>
-                <label class="w-1/3 font-medium">Tuổi</label>
-                <input type="number" name="age" min="1" required class="w-2/3 p-2 border rounded-lg">
-            </div>
+            <form id="predictForm" class="space-y-4">
 
-            <!-- Hút thuốc -->
-            <div class="flex items-center">
-                <i class="fas fa-smoking text-gray-700 w-6"></i>
-                <label class="w-1/3 font-medium">Hút thuốc</label>
-                <select name="currentSmoker" class="w-2/3 p-2 border rounded-lg">
-                    <option value="0">Không</option>
-                    <option value="1">Có</option>
-                </select>
-            </div>
+                <!-- Giới tính -->
+                <div class="flex items-center">
+                    <i class="fas fa-venus-mars text-blue-600 w-6"></i>
+                    <label class="w-1/3 font-medium">Giới tính</label>
+                    <select name="male" class="w-2/3 p-2 border rounded-lg" required>
+                        <option value="1">Nam</option>
+                        <option value="0">Nữ</option>
+                    </select>
+                </div>
 
-            <!-- Số điếu/ngày -->
-            <div class="flex items-center">
-                <i class="fas fa-fire text-orange-600 w-6"></i>
-                <label class="w-1/3 font-medium">Điếu/ngày</label>
-                <input type="number" name="cigsPerDay" min="0" class="w-2/3 p-2 border rounded-lg" value="0">
-            </div>
+                <!-- Tuổi -->
+                <div class="flex items-center">
+                    <i class="fas fa-user text-gray-600 w-6"></i>
+                    <label class="w-1/3 font-medium">Tuổi</label>
+                    <input type="number" name="age" min="1" required class="w-2/3 p-2 border rounded-lg">
+                </div>
 
-            <!-- Thuốc huyết áp -->
-            <div class="flex items-center">
-                <i class="fas fa-pills text-purple-600 w-6"></i>
-                <label class="w-1/3 font-medium">Dùng thuốc HA</label>
-                <select name="BPMeds" class="w-2/3 p-2 border rounded-lg">
-                    <option value="0">Không</option>
-                    <option value="1">Có</option>
-                </select>
-            </div>
+                <!-- Hút thuốc -->
+                <div class="flex items-center">
+                    <i class="fas fa-smoking text-gray-700 w-6"></i>
+                    <label class="w-1/3 font-medium">Hút thuốc</label>
+                    <select name="currentSmoker" class="w-2/3 p-2 border rounded-lg">
+                        <option value="0">Không</option>
+                        <option value="1">Có</option>
+                    </select>
+                </div>
 
-            <!-- Tiểu đường -->
-            <div class="flex items-center">
-                <i class="fas fa-syringe text-red-500 w-6"></i>
-                <label class="w-1/3 font-medium">Tiểu đường</label>
-                <select name="diabetes" class="w-2/3 p-2 border rounded-lg">
-                    <option value="0">Không</option>
-                    <option value="1">Có</option>
-                </select>
-            </div>
+                <!-- Số điếu/ngày -->
+                <div class="flex items-center">
+                    <i class="fas fa-fire text-orange-600 w-6"></i>
+                    <label class="w-1/3 font-medium">Điếu/ngày</label>
+                    <input type="number" name="cigsPerDay" min="0" class="w-2/3 p-2 border rounded-lg" value="0">
+                </div>
 
-            <!-- Huyết áp tâm thu -->
-            <div class="flex items-center">
-                <i class="fas fa-heartbeat text-red-700 w-6"></i>
-                <label class="w-1/3 font-medium">HA tâm thu</label>
-                <input type="number" name="sysBP" required class="w-2/3 p-2 border rounded-lg">
-            </div>
+                <!-- Thuốc huyết áp -->
+                <div class="flex items-center">
+                    <i class="fas fa-pills text-purple-600 w-6"></i>
+                    <label class="w-1/3 font-medium">Dùng thuốc HA</label>
+                    <select name="BPMeds" class="w-2/3 p-2 border rounded-lg">
+                        <option value="0">Không</option>
+                        <option value="1">Có</option>
+                    </select>
+                </div>
 
-            <!-- Huyết áp tâm trương -->
-            <div class="flex items-center">
-                <i class="fas fa-heart text-pink-600 w-6"></i>
-                <label class="w-1/3 font-medium">HA tâm trương</label>
-                <input type="number" name="diaBP" required class="w-2/3 p-2 border rounded-lg">
-            </div>
+                <!-- Tiểu đường -->
+                <div class="flex items-center">
+                    <i class="fas fa-syringe text-red-500 w-6"></i>
+                    <label class="w-1/3 font-medium">Tiểu đường</label>
+                    <select name="diabetes" class="w-2/3 p-2 border rounded-lg">
+                        <option value="0">Không</option>
+                        <option value="1">Có</option>
+                    </select>
+                </div>
 
-            <!-- BMI -->
-            <div class="flex items-center">
-                <i class="fas fa-weight-scale text-green-600 w-6"></i>
-                <label class="w-1/3 font-medium">BMI</label>
-                <input type="number" step="0.1" name="BMI" required class="w-2/3 p-2 border rounded-lg">
-            </div>
+                <!-- Huyết áp tâm thu -->
+                <div class="flex items-center">
+                    <i class="fas fa-heartbeat text-red-700 w-6"></i>
+                    <label class="w-1/3 font-medium">HA tâm thu</label>
+                    <input type="number" name="sysBP" required class="w-2/3 p-2 border rounded-lg">
+                </div>
 
-            <!-- Nhịp tim -->
-            <div class="flex items-center">
-                <i class="fas fa-wave-square text-indigo-600 w-6"></i>
-                <label class="w-1/3 font-medium">Nhịp tim</label>
-                <input type="number" name="heartRate" required class="w-2/3 p-2 border rounded-lg">
-            </div>
+                <!-- Huyết áp tâm trương -->
+                <div class="flex items-center">
+                    <i class="fas fa-heart text-pink-600 w-6"></i>
+                    <label class="w-1/3 font-medium">HA tâm trương</label>
+                    <input type="number" name="diaBP" required class="w-2/3 p-2 border rounded-lg">
+                </div>
 
-            <!-- Button -->
-            <button type="submit" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition">
-                🔍 Dự đoán
-            </button>
-        </form>
+                <!-- BMI -->
+                <div class="flex items-center">
+                    <i class="fas fa-weight-scale text-green-600 w-6"></i>
+                    <label class="w-1/3 font-medium">BMI</label>
+                    <input type="number" step="0.1" name="BMI" required class="w-2/3 p-2 border rounded-lg">
+                </div>
 
-        <!-- Result -->
-        <div id="result" class="mt-6 text-center"></div>
-    </div>
+                <!-- Nhịp tim -->
+                <div class="flex items-center">
+                    <i class="fas fa-wave-square text-indigo-600 w-6"></i>
+                    <label class="w-1/3 font-medium">Nhịp tim</label>
+                    <input type="number" name="heartRate" required class="w-2/3 p-2 border rounded-lg">
+                </div>
+
+                <!-- Button -->
+                <button type="submit" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition">
+                    🔍 Dự đoán
+                </button>
+            </form>
+
+            <!-- Result -->
+            <div id="result" class="mt-6 text-center"></div>
+        </div>
+    </main>
 
     <script>
         document.getElementById("predictForm").addEventListener("submit", async (e) => {

@@ -1,21 +1,19 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hộp Y Tế Thông Minh</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-
 </head>
 
 <body class="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex flex-col items-center justify-start">
 
-  <!-- Nơi menu được chèn -->
-  <div id="menu-container"></div>
+  <div id="menu-container" class="w-full"></div>
 
   <script>
-    // Nạp thanh menu vào mỗi trang
     fetch("menu.html")
       .then(res => res.text())
       .then(html => {
@@ -24,16 +22,9 @@
         socket.on('pill/data/status', (status) => {
           const jsonStatus = JSON.parse(status);
           const wifiIcon = document.getElementById('wifi-status');
-          if(!wifiIcon) console.log('wifiIcon not found');
-          console.log(jsonStatus.status);
-          if(jsonStatus.status === 'online') {
-            wifiIcon.innerHTML = '📶';
-            wifiIcon.className = 'text-green-500 text-xl md:text-2xl animate-pulse';
-            wifiIcon.title = 'Đã kết nối IoT';
-          } else {
-            wifiIcon.innerHTML = '📴';
-            wifiIcon.className = 'text-red-500 text-xl md:text-2xl';
-            wifiIcon.title = 'Mất kết nối IoT';
+          if (wifiIcon) {
+            wifiIcon.innerHTML = jsonStatus.status === 'online' ? '📶' : '📴';
+            wifiIcon.className = jsonStatus.status === 'online' ? 'text-green-500 text-xl animate-pulse' : 'text-red-500 text-xl';
           }
         });
       });
@@ -43,49 +34,70 @@
     }
   </script>
 
-  <!-- Nội dung chính -->
-  <main class="mt-28 flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 w-full">
-    <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800 mb-10 text-center tracking-tight">
+  <main class="pt-32 flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 w-full max-w-7xl">
+    <h1 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-12 text-center tracking-tight">
       🧠 Hộp Y Tế Thông Minh
     </h1>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-10 max-w-5xl w-full">
-      <div class="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 p-6 md:p-8 flex flex-col justify-between border border-transparent hover:border-green-200">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 w-full">
+
+      <div
+        class="group bg-white rounded-3xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 p-8 flex flex-col justify-between border border-transparent hover:border-green-200">
         <div>
-          <h2 class="text-xl md:text-2xl font-semibold text-gray-900 flex items-center gap-3 mb-3">
-            🩺 Đo sinh hóa
-          </h2>
-          <p class="text-gray-600 text-sm md:text-base leading-relaxed">
-            Theo dõi sức khỏe qua <b>Nhịp tim, Nhiệt độ, Huyết áp</b> và <b>Oxy trong máu</b>.  
-            Dữ liệu được cập nhật theo thời gian thực.
+          <div class="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mb-6">
+            <span class="text-3xl">🩺</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-4 tracking-tight">Đo sinh hóa</h2>
+          <p class="text-gray-600 leading-relaxed">
+            Theo dõi chỉ số <b>Nhịp tim, Nhiệt độ, Huyết áp</b> và <b>SpO₂</b> theo thời gian thực từ thiết bị cảm biến.
           </p>
         </div>
         <a href="measurement.html"
-           class="mt-6 md:mt-8 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold py-2.5 md:py-3 rounded-xl text-center shadow-md hover:shadow-lg transition-all duration-300 text-sm md:text-base">
+          class="mt-8 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3.5 rounded-2xl text-center shadow-md hover:shadow-lg transition-all active:scale-95">
           Xem chi tiết
         </a>
       </div>
 
-      <div class="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 p-6 md:p-8 flex flex-col justify-between border border-transparent hover:border-blue-200">
+      <div
+        class="group bg-white rounded-3xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 p-8 flex flex-col justify-between border border-transparent hover:border-blue-200">
         <div>
-          <h2 class="text-xl md:text-2xl font-semibold text-gray-900 flex items-center gap-3 mb-3">
-            ⏰ Hẹn giờ uống thuốc
-          </h2>
-          <p class="text-gray-600 text-sm md:text-base leading-relaxed">
-            Thiết lập nhắc nhở <b>thời gian uống thuốc</b> cho từng ngăn.  
-            Hệ thống sẽ phát tín hiệu khi đến giờ.
+          <div class="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mb-6">
+            <span class="text-3xl">⏰</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-4 tracking-tight">Hẹn giờ thuốc</h2>
+          <p class="text-gray-600 leading-relaxed">
+            Thiết lập nhắc nhở <b>lịch uống thuốc</b> riêng biệt cho từng ngăn. Tự động phát âm thanh cảnh báo.
           </p>
         </div>
         <a href="setTime.html"
-           class="mt-6 md:mt-8 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-2.5 md:py-3 rounded-xl text-center shadow-md hover:shadow-lg transition-all duration-300 text-sm md:text-base">
-          Thiết lập
+          class="mt-8 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold py-3.5 rounded-2xl text-center shadow-md hover:shadow-lg transition-all active:scale-95">
+          Thiết lập ngay
         </a>
       </div>
+
+      <div
+        class="group bg-white rounded-3xl shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 p-8 flex flex-col justify-between border border-transparent hover:border-red-200">
+        <div>
+          <div class="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mb-6">
+            <span class="text-3xl">❤️</span>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-4 tracking-tight">Chẩn đoán</h2>
+          <p class="text-gray-600 leading-relaxed">
+            Phân tích dữ liệu huyết áp để <b>đưa ra cảnh báo</b> về nguy cơ tăng huyết áp theo tiêu chuẩn y tế.
+          </p>
+        </div>
+        <a href="predict.html"
+          class="mt-8 bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold py-3.5 rounded-2xl text-center shadow-md hover:shadow-lg transition-all active:scale-95">
+          Kiểm tra bệnh
+        </a>
+      </div>
+
     </div>
 
-    <footer class="mt-12 md:mt-16 text-gray-500 text-xs md:text-sm text-center">
-      © 2025 Smart Health Box — by <b class="text-blue-600">????????????</b>
+    <footer class="mt-20 text-gray-400 text-sm text-center">
+      © 2025 Smart Health Box — Chăm sóc sức khỏe gia đình bạn
     </footer>
   </main>
 </body>
+
 </html>

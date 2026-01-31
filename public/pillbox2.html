@@ -1,13 +1,21 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8">
-  <title>Hẹn Giờ Uống Thuốc</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hộp Thuốc Thông Minh</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 text-gray-800 flex flex-col items-center">
 
+<body class="min-h-screen bg-[#F8FAFC] flex flex-col items-center">
   <!-- Menu -->
   <div id="menu-container"></div>
   <script>
@@ -19,9 +27,9 @@
         socket.on('pill/data/status', (status) => {
           const jsonStatus = JSON.parse(status);
           const wifiIcon = document.getElementById('wifi-status');
-          if(!wifiIcon) console.log('wifiIcon not found');
+          if (!wifiIcon) console.log('wifiIcon not found');
           console.log(jsonStatus.status);
-          if(jsonStatus.status === 'online') {
+          if (jsonStatus.status === 'online') {
             wifiIcon.innerHTML = '📶';
             wifiIcon.className = 'text-green-500 text-xl md:text-2xl animate-pulse';
             wifiIcon.title = 'Đã kết nối IoT';
@@ -38,137 +46,146 @@
     }
   </script>
 
-  <!-- Nội dung chính -->
-  <main class="mt-28 w-full flex flex-col items-center px-4 sm:px-6 md:px-8 pb-12">
 
-    <h1 class="text-3xl font-bold mb-10 text-indigo-600 tracking-wide text-center">
-      💊 Hẹn Giờ Uống Thuốc
+  <main class="pt-28 pb-12 px-4 sm:px-6 md:px-8 w-full max-w-6xl flex flex-col items-center">
+
+    <h1 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-10 text-center tracking-tight">
+      ⏰ Hẹn Giờ Uống Thuốc
     </h1>
 
-    <!-- 8 ngăn thuốc -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-12">
-      <div class="ngan w-24 h-24 flex items-center justify-center rounded-2xl border-2 border-gray-200 
-                  bg-white shadow-md cursor-pointer font-semibold text-lg 
-                  transition-all duration-300 hover:-translate-y-2 hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-xl"
-          data-id="1">1</div>
-      <div class="ngan w-24 h-24 flex items-center justify-center rounded-2xl border-2 border-gray-200 
-                  bg-white shadow-md cursor-pointer font-semibold text-lg 
-                  transition-all duration-300 hover:-translate-y-2 hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-xl"
-          data-id="2">2</div>
-      <div class="ngan w-24 h-24 flex items-center justify-center rounded-2xl border-2 border-gray-200 
-                  bg-white shadow-md cursor-pointer font-semibold text-lg 
-                  transition-all duration-300 hover:-translate-y-2 hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-xl"
-          data-id="3">3</div>
-      <div class="ngan w-24 h-24 flex items-center justify-center rounded-2xl border-2 border-gray-200 
-                  bg-white shadow-md cursor-pointer font-semibold text-lg 
-                  transition-all duration-300 hover:-translate-y-2 hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-xl"
-          data-id="4">4</div>
-      <div class="ngan w-24 h-24 flex items-center justify-center rounded-2xl border-2 border-gray-200 
-                  bg-white shadow-md cursor-pointer font-semibold text-lg 
-                  transition-all duration-300 hover:-translate-y-2 hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-xl"
-          data-id="5">5</div>
-      <div class="ngan w-24 h-24 flex items-center justify-center rounded-2xl border-2 border-gray-200 
-                  bg-white shadow-md cursor-pointer font-semibold text-lg 
-                  transition-all duration-300 hover:-translate-y-2 hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-xl"
-          data-id="6">6</div>
-      <div class="ngan w-24 h-24 flex items-center justify-center rounded-2xl border-2 border-gray-200 
-                  bg-white shadow-md cursor-pointer font-semibold text-lg 
-                  transition-all duration-300 hover:-translate-y-2 hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-xl"
-          data-id="7">7</div>
-      <div class="ngan w-24 h-24 flex items-center justify-center rounded-2xl border-2 border-gray-200 
-                  bg-white shadow-md cursor-pointer font-semibold text-lg 
-                  transition-all duration-300 hover:-translate-y-2 hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-xl"
-          data-id="8">8</div>
-      <button onclick="setSchedule()" class=" w-24 h-24 flex items-center justify-center rounded-2xl border-2 border-gray-200 
-                  bg-white shadow-md cursor-pointer font-semibold text-lg 
-                  transition-all duration-300 hover:-translate-y-2 hover:border-indigo-500 hover:bg-indigo-50 hover:shadow-xl">
-        🔄
-      </button>
+    <div class="w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <div class="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8">
+        <div class="flex items-center gap-2 mb-6 text-[#1E293B] font-bold text-xl">
+          <span class="text-blue-500">📅</span> 15 Ngăn Thuốc
         </div>
 
-    <!-- Khung chi tiết -->
-    <div id="chiTiet" class="hidden flex-col items-center justify-center gap-5 w-96 max-w-full p-8 bg-white border-2 border-gray-100 rounded-2xl shadow-2xl transition-all duration-500">
-      <h2 id="nganTitle" class="text-2xl font-bold text-gray-700 mb-2">Ngăn ?</h2>
+        <div class="grid grid-cols-3 sm:grid-cols-5 gap-4" id="grid-ngan">
+        </div>
 
-      <div class="w-full text-left">
-        <label for="gio" class="block text-sm font-semibold mb-1 text-gray-600">⏰ Giờ uống:</label>
-        <input id="gio" type="time" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all">
+        <div class="mt-8 flex justify-center">
+          <button onclick="setSchedule()"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-md active:scale-95">
+            Cập nhật lịch trình 🔄
+          </button>
+        </div>
       </div>
 
-      <div class="w-full text-left">
-        <label for="ngay" class="block text-sm font-semibold mb-1 text-gray-600">📅 Ngày uống:</label>
-        <input id="ngay" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-all">
-      </div>
+      <div class="space-y-6">
+        <div
+          class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 flex flex-col items-center justify-center min-h-[300px]">
+          <div class="flex items-center gap-2 mb-8 self-start text-[#1E293B] font-bold text-xl">
+            <span class="text-blue-500">🔔</span> Lịch Nhắc Nhở
+          </div>
 
-      <button onclick="luuThoiGian()" 
-        class="mt-4 bg-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-indigo-700 hover:scale-105 transition-all duration-300 shadow-lg">
-        💾 Lưu
-      </button>
+          <div id="status-empty" class="flex flex-col items-center opacity-40">
+            <div class="bg-gray-100 p-4 rounded-full mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-500" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p class="text-gray-600">Chưa có lịch nhắc nhở</p>
+          </div>
+
+          <div class="w-full mt-6 bg-blue-50 rounded-2xl p-6 text-center">
+            <div id="active-count" class="text-4xl font-bold text-blue-600 mb-1">0</div>
+            <p class="text-blue-800 font-medium">Lịch nhắc đang hoạt động</p>
+          </div>
+        </div>
+
+        <div id="chiTiet"
+          class="hidden bg-white rounded-3xl shadow-xl border-2 border-blue-100 p-6 animate-in fade-in zoom-in duration-300">
+          <h2 id="nganTitle" class="text-xl font-bold text-gray-800 mb-4">Cài đặt Ngăn</h2>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-500 mb-1">Giờ uống:</label>
+              <input id="gio" type="time"
+                class="w-full border border-gray-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-500 mb-1">Ngày uống:</label>
+              <input id="ngay" type="date"
+                class="w-full border border-gray-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <button onclick="luuThoiGian()"
+              class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">
+              Lưu thông tin
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 
   <script>
-    const nganElements = document.querySelectorAll(".ngan");
-    const chiTiet = document.getElementById("chiTiet");
-    const nganTitle = document.getElementById("nganTitle");
-    const gioInput = document.getElementById("gio");
-    const ngayInput = document.getElementById("ngay");
-
+    // Giữ nguyên phần JS xử lý render ngăn và logic lưu thời gian của bạn
+    const gridNgan = document.getElementById('grid-ngan');
+    const thoiGian = {};
     let currentNgan = null;
-    const thoiGian = {}; // Lưu thời gian từng ngăn
 
-    // Khi bấm chọn ngăn
-    nganElements.forEach(ngan => {
-      ngan.addEventListener("click", () => {
-        currentNgan = ngan.getAttribute("data-id");
-        nganTitle.textContent = "Ngăn " + currentNgan;
+    const colors = [
+      { bg: 'bg-blue-500' }, { bg: 'bg-emerald-500' }, { bg: 'bg-orange-500' }
+    ];
 
-        chiTiet.classList.remove("hidden");
-        chiTiet.classList.add("flex");
-
-        if (thoiGian[currentNgan]) {
-          gioInput.value = thoiGian[currentNgan].gio;
-          ngayInput.value = thoiGian[currentNgan].ngay;
-        } else {
-          gioInput.value = "";
-          ngayInput.value = "";
-        }
-      });
-    });
-
-    // Lưu thời gian
-    function luuThoiGian() {
-      if (!currentNgan) return;
-
-      thoiGian[currentNgan] = {
-        gio: gioInput.value,
-        ngay: ngayInput.value
-      };
-      alert('Lưu giờ thành công cho ngăn ' + currentNgan);
-      const nganEl = document.querySelector(`.ngan[data-id="${currentNgan}"]`);
-      nganEl.classList.add("bg-gradient-to-br", "from-green-400", "to-green-600", "text-white", "border-none", "shadow-lg", "scale-105");
+    for (let i = 1; i <= 15; i++) {
+      const colorIndex = Math.floor((i - 1) / 5);
+      const color = colors[colorIndex];
+      const btn = document.createElement('div');
+      btn.className = `ngan group cursor-pointer bg-white border border-gray-100 rounded-2xl p-4 flex flex-col items-center transition-all hover:shadow-md hover:border-gray-300`;
+      btn.setAttribute('data-id', i);
+      btn.innerHTML = `
+        <div class="w-10 h-10 ${color.bg} text-white rounded-full flex items-center justify-center font-bold mb-2 group-hover:scale-110 transition-transform">${i}</div>
+        <div class="flex items-center gap-1 text-[10px] text-gray-400">
+          <span class="status-dot w-2 h-2 rounded-full bg-gray-200"></span> Trống
+        </div>
+      `;
+      btn.onclick = () => selectNgan(i);
+      gridNgan.appendChild(btn);
     }
-    async function setSchedule() {
-      try {
-        const response = await fetch("/api/v1/schedule", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({mode:'custom',thoiGian})
-        });   
-  
-        if (response.ok) {
-          const result = await response.json();
-          alert(result.message);
-        } else {
-          const errorData = await response.json();
-          alert('Lỗi: ' + errorData.message);
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Lỗi khi kết nối đến máy chủ.');
+
+    function selectNgan(id) {
+      currentNgan = id;
+      document.getElementById('chiTiet').classList.remove('hidden');
+      document.getElementById('nganTitle').innerText = `Cài đặt Ngăn số ${id}`;
+      if (thoiGian[id]) {
+        document.getElementById("gio").value = thoiGian[id].gio;
+        document.getElementById("ngay").value = thoiGian[id].ngay;
+      } else {
+        document.getElementById("gio").value = "";
+        document.getElementById("ngay").value = "";
       }
     }
+
+    function luuThoiGian() {
+      const gio = document.getElementById("gio").value;
+      const ngay = document.getElementById("ngay").value;
+      if (!gio || !ngay) return alert("Vui lòng nhập đầy đủ!");
+      thoiGian[currentNgan] = { gio, ngay };
+      const nganEl = document.querySelector(`.ngan[data-id="${currentNgan}"]`);
+      nganEl.querySelector('.status-dot').className = 'status-dot w-2 h-2 rounded-full bg-green-500';
+      nganEl.querySelector('.status-dot').parentElement.innerHTML = `<span class="status-dot w-2 h-2 rounded-full bg-green-500"></span> ${gio}`;
+      document.getElementById('active-count').innerText = Object.keys(thoiGian).length;
+      document.getElementById('status-empty').classList.add('hidden');
+    }
+
+    // Phần Menu Socket.io
+    fetch("menu.html")
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("menu-container").innerHTML = html;
+        const socket = io();
+        socket.on('pill/data/status', (status) => {
+          const jsonStatus = JSON.parse(status);
+          const wifiIcon = document.getElementById('wifi-status');
+          if (wifiIcon) {
+            wifiIcon.innerHTML = jsonStatus.status === 'online' ? '📶' : '📴';
+            wifiIcon.className = jsonStatus.status === 'online' ? 'text-green-500 text-xl animate-pulse' : 'text-red-500 text-xl';
+          }
+        });
+      });
   </script>
 </body>
-</html>
 
+</html>
