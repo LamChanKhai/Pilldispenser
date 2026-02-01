@@ -114,7 +114,6 @@ void loop() {
 
     //Serial.printf("Looping\n");
     handleButton();       // Bấm nút → tắt chuông + bật Servo
-    updateServo2();       // Tự đóng lại 0.5s sau
     updateAlarmSound();   // Tiếp tục cảnh báo nếu chưa có người bấm
     checkSchedule(dispensePill); // Đến giờ → quay Stepper + bật chuông
     

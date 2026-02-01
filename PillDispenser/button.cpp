@@ -20,7 +20,7 @@ const unsigned long debounceDelay = 50; // ms
 // =======================================================
 
 void handleButton() {
-    int reading = digitalRead(buttonPin);
+    int reading = !digitalRead(buttonPin);
 
     // kiểm tra thay đổi tín hiệu nút
     if (reading != lastButtonState) {

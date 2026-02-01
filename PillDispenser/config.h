@@ -22,8 +22,8 @@ extern const char* USER_ID;
 
 // ============= SERVO DISPENSER ================
 #define servo2Pin 18
-#define servo2HomeAngle   0
-#define servo2ActiveAngle 90
+#define servo2HomeAngle   95
+#define servo2ActiveAngle 55
 
 // ============= STEPPER CONFIG =================
 #define IN1 14

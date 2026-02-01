@@ -8,9 +8,7 @@
 
 // ========================= SERVO VARIABLES =========================
 Servo myServo2;
-bool servo2Holding = false;
-unsigned long servo2ActivatedAt = 0;
-const unsigned long servo2HoldDuration = 500; // ms giữ cửa mở → 0.5s
+bool servo2IsOpen = false;  // trạng thái servo: false = đóng, true = mở
 
 // ========================= STEPPER VARIABLES =========================
 int currentCompartment = 0;  // ngăn thuốc đang đứng
@@ -71,29 +69,31 @@ void rotateToNextCompartment() {
 }
 
 // ====================================================================
-// SERVO CONTROL – CHỈ KÍCH HOẠT KHI NGƯỜI BẤM NÚT
+// SERVO CONTROL – TOGGLE KHI NGƯỜI BẤM NÚT
 // ====================================================================
 void servo2Init() {
     myServo2.attach(servo2Pin);
     myServo2.write(servo2HomeAngle);
+    servo2IsOpen = false;
+    Serial.println("Servo2 initialized → CLOSED");
 }
 
 void triggerServo2() {
-    if (servo2Holding) return;
-
-    myServo2.write(servo2ActiveAngle);
-    servo2Holding = true;
-    servo2ActivatedAt = millis();
-    Serial.println("Servo2 → OPEN");
-}
-
-void updateServo2() {
-    if (servo2Holding && millis() - servo2ActivatedAt >= servo2HoldDuration) {
+    // Toggle: nếu đang đóng → mở, nếu đang mở → đóng
+    if (!servo2IsOpen) {
+        // Lần nhấn 1: Mở cửa thả thuốc
+        myServo2.write(servo2ActiveAngle);
+        servo2IsOpen = true;
+        Serial.println("Servo2 → OPEN (pill dispensing)");
+    } else {
+        // Lần nhấn 2: Đóng cửa về vị trí cũ
         myServo2.write(servo2HomeAngle);
-        servo2Holding = false;
-        Serial.println("Servo2 → CLOSE");
+        servo2IsOpen = false;
+        Serial.println("Servo2 → CLOSE (return to home)");
     }
 }
+
+
 
 // ====================================================================
 // 📌 DISPENSE LOGIC
