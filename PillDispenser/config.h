@@ -15,6 +15,7 @@ extern const char* mqtt_topic_sub;
 extern const char* mqtt_topic_config;
 extern const char* mqtt_topic_status;
 extern const char* mqtt_topic_measurement;
+extern const char* mqtt_topic_refill;
 extern const char* USER_ID;
 // ==================== I/O =====================
 #define LED_PIN 2

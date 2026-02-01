@@ -34,6 +34,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         if (msg == "dispense") dispensePill();  // Cấp thuốc thủ công qua app
         if (msg == "status")   Serial.println("STATUS REQUESTED");
     }
+    if (String(topic) == mqtt_topic_refill) rotateToNextCompartment();
 }
 
 // ----------------------------------------------------------------------------------

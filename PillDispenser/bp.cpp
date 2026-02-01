@@ -7,6 +7,7 @@
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include "secrets.h"
+#include "audio.h"
 #define BP_RXD 16
 #define BP_TXD -1
 
@@ -108,8 +109,14 @@ void sendTelegramAlert(int sys, int dia, int pulse) {
     Serial.println(url);
 
     https.begin(client, url);
-    https.GET();
+    int httpCode = https.GET();
     https.end();
 
-    Serial.println("📨 Telegram alert sent");
+    if (httpCode == 200) {
+        Serial.println("📨 Telegram alert sent successfully");
+        // Phát file WAV thông báo gửi dữ liệu hoàn tất
+        playWavFile("Gui_du_lieu_hoan_tat.wav");
+    } else {
+        Serial.printf("❌ Telegram alert failed, code: %d\n", httpCode);
+    }
 }

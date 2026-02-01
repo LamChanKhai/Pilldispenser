@@ -11,6 +11,7 @@ import { PORT } from "./config/env.js";
 import { Server } from "socket.io";
 import connecToDatabase from "./database/mongodb.js";
 import predictRoute from "./routes/predict.route.js";
+import "./controllers/mqtt.controller.js"; // Khởi tạo MQTT connection
 
 // Fix __dirname trong ES module
 const __filename = fileURLToPath(import.meta.url);

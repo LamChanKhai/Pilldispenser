@@ -8,7 +8,7 @@ struct ScheduleEntry {
     bool active;
 };
 
-ScheduleEntry scheduleList[12];
+ScheduleEntry scheduleList[14];
 int scheduleCount = 0;
 int currentIndex  = 0;
 
@@ -16,7 +16,7 @@ int currentIndex  = 0;
 // XÓA LỊCH
 // =======================================================
 void clearSchedule() {
-    for(int i=0;i<12;i++){
+    for(int i=0;i<14;i++){
         scheduleList[i].active = false;
         memset(scheduleList[i].time,0,sizeof(scheduleList[i].time));
     }
@@ -29,7 +29,7 @@ void clearSchedule() {
 // THÊM GIỜ UỐNG THUỐC
 // =======================================================
 void addSchedule(String timeStr){
-    if(scheduleCount>=12) return;
+    if(scheduleCount>=14) return;
     timeStr.trim();
     timeStr.toCharArray(scheduleList[scheduleCount].time,6);
     scheduleList[scheduleCount].active = true;
@@ -72,25 +72,34 @@ void parseCustomJSON(String json){
 
 // =======================================================
 // 🟢 PARSE QUICK MODE
-// "quick,11:11,22:22" → xen kẽ 12 mốc
-// 11:11,22:22,11:11,22:22,... x 12
+// "quick,11:11,22:22" → xen kẽ 14 mốc
+// 11:11,22:22,11:11,22:22,... x 14
 // =======================================================
 void parseQuick(String csv){
-    String times[2];
+    String times[3];  // Đủ để chứa "quick", "11:11", "22:22"
     int index=0,start=0,end;
 
+    // Parse tất cả các phần tử được phân tách bởi dấu phẩy
     while((end=csv.indexOf(",",start))!=-1 && index<3){
         times[index++]=csv.substring(start,end);
         start=end+1;
     }
-    times[index++] = csv.substring(start);
+    // Lấy phần tử cuối cùng
+    if(index < 3) {
+        times[index++] = csv.substring(start);
+    }
 
-    if(times[0]!="quick" || index<3) return;
+    // Kiểm tra format: phải có "quick" và ít nhất 2 thời gian
+    if(times[0]!="quick" || index<3) {
+        Serial.println("❌ Invalid quick format");
+        return;
+    }
 
-    for(int i=0;i<12;i++){
+    // Xen kẽ 2 thời gian thành 14 mốc
+    for(int i=0;i<14;i++){
         addSchedule( (i%2==0) ? times[1] : times[2] );
     }
-    Serial.println("⚡ QUICK schedule generated (x12)");
+    Serial.println("⚡ QUICK schedule generated (14)");
 }
 
 // =======================================================
@@ -98,7 +107,7 @@ void parseQuick(String csv){
 // =======================================================
 void setSchedule(String data){
     clearSchedule();
-
+    Serial.println("🔍 Setting schedule with data: " + data);
     if(data.startsWith("{"))         parseCustomJSON(data);
     else if(data.startsWith("quick"))parseQuick(data);
     else Serial.println("❌ Unknown schedule format");

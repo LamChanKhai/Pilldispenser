@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nạp Thuốc - Hộp Thuốc Thông Minh</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .pill-container {
+      position: relative;
+      width: 500px;
+      height: 500px;
+      margin: 0 auto;
+    }
+
+    .compartment {
+      cursor: default;
+    }
+
+    .compartment.empty {
+      fill: #e5e7eb;
+    }
+
+    .compartments-group {
+      transform-origin: 250px 250px;
+      transition: transform 0.5s ease-in-out;
+    }
+
+    .center-button {
+      cursor: pointer;
+      transition: filter 0.3s ease;
+      transform-origin: 250px 250px;
+    }
+
+    .center-button:hover {
+      filter: brightness(1.1);
+    }
+
+    .center-button:active {
+      filter: brightness(0.9);
+    }
+
+    @media (max-width: 640px) {
+      .pill-container {
+        width: 350px;
+        height: 350px;
+      }
+    }
+  </style>
+</head>
+
+<body class="min-h-screen bg-[#F8FAFC] flex flex-col items-center">
+  <!-- Menu -->
+  <div id="menu-container"></div>
+  <script>
+    fetch("menu.html")
+      .then(res => res.text())
+      .then(html => {
+        document.getElementById("menu-container").innerHTML = html;
+        const socket = io();
+        socket.on('pill/data/status', (status) => {
+          const jsonStatus = JSON.parse(status);
+          const wifiIcon = document.getElementById('wifi-status');
+          if (!wifiIcon) console.log('wifiIcon not found');
+          console.log(jsonStatus.status);
+          if (jsonStatus.status === 'online') {
+            wifiIcon.innerHTML = '📶';
+            wifiIcon.className = 'text-green-500 text-xl md:text-2xl animate-pulse';
+            wifiIcon.title = 'Đã kết nối IoT';
+          } else {
+            wifiIcon.innerHTML = '📴';
+            wifiIcon.className = 'text-red-500 text-xl md:text-2xl';
+            wifiIcon.title = 'Mất kết nối IoT';
+          }
+        });
+      });
+    function toggleMenu() {
+      const menu = document.getElementById('mobile-menu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+  </script>
+
+  <main class="pt-28 pb-12 px-4 sm:px-6 md:px-8 w-full max-w-6xl flex flex-col items-center">
+    <h1 class="text-2xl md:text-3xl font-extrabold text-gray-800 mb-10 text-center tracking-tight">
+      💊 Nạp Thuốc
+    </h1>
+
+    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-8 w-full max-w-2xl">
+      <div class="flex items-center gap-2 mb-6 text-[#1E293B] font-bold text-xl">
+        <span class="text-blue-500 inline-block">📦</span> 
+        <span class="inline-block">Chọn ngăn để nạp thuốc</span>
+      </div>
+
+      <!-- Hình tròn với 15 ngăn -->
+      <div class="pill-container">
+        <svg width="100%" height="100%" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="shadow">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+            </filter>
+          </defs>
+          
+          <!-- 15 ngăn ngoài -->
+          <g id="outer-compartments" class="compartments-group">
+            <!-- Các ngăn sẽ được tạo bằng JavaScript -->
+          </g>
+
+          <!-- Nút trung tâm (hình tròn) -->
+          <circle 
+            id="center-button-circle"
+            class="center-button"
+            cx="250" 
+            cy="250" 
+            r="60" 
+            fill="#3b82f6"
+            filter="url(#shadow)"
+            onclick="rotateCompartments()"
+          />
+          <text 
+            x="250" 
+            y="260" 
+            text-anchor="middle" 
+            font-size="16" 
+            font-weight="bold" 
+            fill="white"
+            pointer-events="none"
+          >🔄</text>
+        </svg>
+      </div>
+
+
+    </div>
+  </main>
+
+  <script>
+    const centerX = 250;
+    const centerY = 250;
+    const outerRadius = 180;
+    const innerRadius = 80;
+    const totalCompartments = 15;
+    let rotationAngle = 0;
+
+    const svg = document.querySelector('svg');
+    const outerCompartments = document.getElementById('outer-compartments');
+
+    // Tạo 15 ngăn ngoài, mỗi ngăn có góc 360/15 = 24 độ
+    const angleStep = 360 / totalCompartments; // 24 độ mỗi ngăn
+
+    for (let i = 0; i < totalCompartments; i++) {
+      const compartmentNumber = i + 1;
+      
+      // Tính góc cho ngăn này (bắt đầu từ trên, đi theo chiều kim đồng hồ)
+      const angle = i * angleStep;
+      
+      // Chuyển đổi sang radian và điều chỉnh để bắt đầu từ trên (0 độ = trên cùng)
+      const angleRad = ((angle - 90) * Math.PI) / 180;
+      
+      // Tính toán vị trí cho ngăn hình quạt
+      const compartmentAngle = angleStep * (Math.PI / 180); // Góc của mỗi ngăn
+      const startAngle = angleRad - (compartmentAngle / 2);
+      const endAngle = angleRad + (compartmentAngle / 2);
+      
+      // Ngăn 15 để trống - không tạo path
+      if (compartmentNumber !== 15) {
+        // Tạo path cho ngăn hình quạt
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const x1 = centerX + outerRadius * Math.cos(startAngle);
+        const y1 = centerY + outerRadius * Math.sin(startAngle);
+        const x2 = centerX + outerRadius * Math.cos(endAngle);
+        const y2 = centerY + outerRadius * Math.sin(endAngle);
+        const x3 = centerX + innerRadius * Math.cos(endAngle);
+        const y3 = centerY + innerRadius * Math.sin(endAngle);
+        const x4 = centerX + innerRadius * Math.cos(startAngle);
+        const y4 = centerY + innerRadius * Math.sin(startAngle);
+        
+        const pathData = `M ${x1} ${y1} A ${outerRadius} ${outerRadius} 0 0 1 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 0 0 ${x4} ${y4} Z`;
+        
+        path.setAttribute('d', pathData);
+        path.setAttribute('id', `compartment-${compartmentNumber}`);
+        path.setAttribute('class', 'compartment empty');
+        path.setAttribute('filter', 'url(#shadow)');
+        
+        outerCompartments.appendChild(path);
+      }
+      
+      // Thêm số ngăn (kể cả ngăn 15)
+      const labelAngle = angleRad;
+      const labelRadius = (outerRadius + innerRadius) / 2;
+      const labelX = centerX + labelRadius * Math.cos(labelAngle);
+      const labelY = centerY + labelRadius * Math.sin(labelAngle);
+      
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', labelX);
+      text.setAttribute('y', labelY);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size', '14');
+      text.setAttribute('font-weight', 'bold');
+      text.setAttribute('fill', '#4b5563');
+      text.setAttribute('pointer-events', 'none');
+      text.textContent = compartmentNumber;
+      
+      outerCompartments.appendChild(text);
+    }
+
+    function rotateCompartments() {
+      // Xoay các ngăn một góc 360/15 (một vị trí)
+      fetch('/schedule/refill')
+        .then(res => res.json())
+        .then(data => {
+          console.log(data);
+        });
+      rotationAngle += (360 / 15);
+      const compartmentsGroup = document.getElementById('outer-compartments');
+      compartmentsGroup.style.transform = `rotate(${rotationAngle}deg)`;
+    }
+  </script>
+</body>
+
+</html>
+

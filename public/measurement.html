@@ -7,6 +7,7 @@
   <title>Đo Chỉ Số Sức Khỏe</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body {
@@ -53,17 +54,29 @@
         </div>
         <h2 class="text-xl font-bold text-gray-800 mb-6">Huyết áp & Nhịp tim</h2>
 
-        <div class="flex justify-around w-full border-t border-gray-100 pt-6">
-          <div class="text-center">
+        <div class="w-full mb-4">
+          <label class="block text-xs font-semibold text-gray-600 mb-2">Chọn bản ghi:</label>
+          <select id="bpRecordSelect" onchange="loadSelectedBpRecord()"
+            class="w-full px-3 py-2 bg-white border-2 border-red-200 rounded-lg text-sm text-gray-700 font-medium focus:outline-none focus:border-red-400 transition-all">
+            <option value="">Đang tải...</option>
+          </select>
+        </div>
+
+        <div class="w-full border-t border-gray-100 pt-6 space-y-4">
+          <div class="flex justify-between items-center">
             <p class="text-sm text-gray-400 font-medium uppercase tracking-wider">Nhịp tim</p>
-            <p id="bpValue" class="text-3xl font-black text-red-500 mt-1">-- <span
+            <p id="heartBeatValue" class="text-3xl font-black text-red-500">-- <span
                 class="text-lg font-normal">bpm</span></p>
           </div>
-          <div class="w-px bg-gray-100"></div>
-          <div class="text-center">
-            <p class="text-sm text-gray-400 font-medium uppercase tracking-wider">Huyết áp</p>
-            <p class="text-3xl font-black text-gray-700 mt-1">120/80 <span
-                class="text-lg font-normal text-gray-400">mmHg</span></p>
+          <div class="flex justify-between items-center">
+            <p class="text-sm text-gray-400 font-medium uppercase tracking-wider">Huyết áp tâm thu</p>
+            <p id="systolicValue" class="text-3xl font-black text-red-600">-- <span
+                class="text-lg font-normal">mmHg</span></p>
+          </div>
+          <div class="flex justify-between items-center">
+            <p class="text-sm text-gray-400 font-medium uppercase tracking-wider">Huyết áp tâm trương</p>
+            <p id="diastolicValue" class="text-3xl font-black text-red-700">-- <span
+                class="text-lg font-normal">mmHg</span></p>
           </div>
         </div>
       </div>
@@ -74,6 +87,14 @@
           <span class="text-5xl">🌬️</span>
         </div>
         <h2 class="text-xl font-bold text-gray-800 mb-6">Oxi máu & Nhiệt độ</h2>
+
+        <div class="w-full mb-4">
+          <label class="block text-xs font-semibold text-gray-600 mb-2">Chọn bản ghi:</label>
+          <select id="spo2RecordSelect" onchange="loadSelectedSpo2Record()"
+            class="w-full px-3 py-2 bg-white border-2 border-blue-200 rounded-lg text-sm text-gray-700 font-medium focus:outline-none focus:border-blue-400 transition-all">
+            <option value="">Đang tải...</option>
+          </select>
+        </div>
 
         <div class="flex justify-around w-full border-t border-gray-100 pt-6">
           <div class="text-center">
@@ -92,36 +113,374 @@
 
     </div>
 
-    <button onclick="fetchData()"
-      class="mt-12 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95">
-      Làm mới dữ liệu 🔄
-    </button>
+    <div class="w-full mt-12 space-y-8">
+      <div class="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
+        <h3 class="text-xl font-bold text-gray-800 mb-6">📊 Biểu đồ Huyết áp & Nhịp tim</h3>
+        <canvas id="bpChart"></canvas>
+      </div>
+
+      <div class="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
+        <h3 class="text-xl font-bold text-gray-800 mb-6">📊 Biểu đồ Oxi máu & Nhiệt độ</h3>
+        <canvas id="spo2Chart"></canvas>
+      </div>
+    </div>
 
   </main>
 
   <script>
-    function fetchData() {
-      // Thay ID bằng userId thực tế của bạn
-      const userId = "690583a8d3dde5f187c1cd58";
+    let bpChart = null;
+    let spo2Chart = null;
+    let allBpData = [];
+    let allSpo2Data = [];
+    const userId = "690583a8d3dde5f187c1cd58"; // User ID cố định
 
-      fetch(`/api/v1/measurement/${userId}`)
-        .then(res => res.json())
-        .then(data => {
-          console.log("Dữ liệu nhận được:", data);
-          document.getElementById("tempValue").innerHTML = `${data.temp} <span class="text-lg font-normal">°C</span>`;
-          document.getElementById("oxygenValue").innerHTML = `${data.spo2} <span class="text-lg font-normal">%</span>`;
-          document.getElementById("bpValue").innerHTML = `${data.heart_beat} <span class="text-lg font-normal">bpm</span>`;
-        })
-        .catch(err => {
-          console.error("Lỗi khi tải dữ liệu:", err);
-        });
+    // Load tất cả records của user
+    async function loadAllRecords() {
+      try {
+        // Fetch BP data
+        const bpRes = await fetch(`/api/v1/measurement/bp/${userId}`);
+        allBpData = await bpRes.json();
+        
+        // Fetch SPO2 data
+        const spo2Res = await fetch(`/api/v1/measurement/spo2/${userId}`);
+        allSpo2Data = await spo2Res.json();
+
+        // Populate dropdown với các records
+        populateBpDropdown();
+        populateSpo2Dropdown();
+      } catch (err) {
+        console.error("Lỗi khi tải dữ liệu:", err);
+      }
     }
 
-    // Tự động tải dữ liệu khi trang web mở
-    window.onload = fetchData;
+    // Populate dropdown BP với danh sách records
+    function populateBpDropdown() {
+      const select = document.getElementById('bpRecordSelect');
+      select.innerHTML = '<option value="">Chọn bản ghi...</option>';
 
-    // Cập nhật mỗi 30 giây
-    setInterval(fetchData, 30000);
+      if (!allBpData || allBpData.length === 0) {
+        return;
+      }
+
+      // Sắp xếp theo thời gian giảm dần (mới nhất trước)
+      const sortedBpData = [...allBpData].sort((a, b) => {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
+      sortedBpData.forEach((record, index) => {
+        if (record.createdAt) {
+          const date = new Date(record.createdAt);
+          const option = document.createElement('option');
+          option.value = record._id || index;
+          option.textContent = date.toLocaleString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          });
+          select.appendChild(option);
+        }
+      });
+
+      // Chọn record mới nhất mặc định
+      if (sortedBpData.length > 0) {
+        select.value = sortedBpData[0]._id || 0;
+        loadSelectedBpRecord();
+      }
+    }
+
+    // Populate dropdown SPO2 với danh sách records
+    function populateSpo2Dropdown() {
+      const select = document.getElementById('spo2RecordSelect');
+      select.innerHTML = '<option value="">Chọn bản ghi...</option>';
+
+      if (!allSpo2Data || allSpo2Data.length === 0) {
+        return;
+      }
+
+      // Sắp xếp theo thời gian giảm dần (mới nhất trước)
+      const sortedSpo2Data = [...allSpo2Data].sort((a, b) => {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
+      sortedSpo2Data.forEach((record, index) => {
+        if (record.createdAt) {
+          const date = new Date(record.createdAt);
+          const option = document.createElement('option');
+          option.value = record._id || index;
+          option.textContent = date.toLocaleString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          });
+          select.appendChild(option);
+        }
+      });
+
+      // Chọn record mới nhất mặc định
+      if (sortedSpo2Data.length > 0) {
+        select.value = sortedSpo2Data[0]._id || 0;
+        loadSelectedSpo2Record();
+      }
+    }
+
+    // Load BP record được chọn
+    function loadSelectedBpRecord() {
+      const selectedId = document.getElementById('bpRecordSelect').value;
+      
+      if (!selectedId) {
+        // Reset hiển thị
+        document.getElementById("heartBeatValue").innerHTML = '-- <span class="text-lg font-normal">bpm</span>';
+        document.getElementById("systolicValue").innerHTML = '-- <span class="text-lg font-normal">mmHg</span>';
+        document.getElementById("diastolicValue").innerHTML = '-- <span class="text-lg font-normal">mmHg</span>';
+        return;
+      }
+
+      // Tìm BP record theo ID
+      const selectedBp = allBpData.find(record => record._id === selectedId || record._id?.toString() === selectedId);
+
+      // Hiển thị dữ liệu
+      if (selectedBp) {
+        document.getElementById("heartBeatValue").innerHTML = `${selectedBp.heart_beat || '--'} <span class="text-lg font-normal">bpm</span>`;
+        document.getElementById("systolicValue").innerHTML = `${selectedBp.systolic || '--'} <span class="text-lg font-normal">mmHg</span>`;
+        document.getElementById("diastolicValue").innerHTML = `${selectedBp.diastolic || '--'} <span class="text-lg font-normal">mmHg</span>`;
+      } else {
+        document.getElementById("heartBeatValue").innerHTML = '-- <span class="text-lg font-normal">bpm</span>';
+        document.getElementById("systolicValue").innerHTML = '-- <span class="text-lg font-normal">mmHg</span>';
+        document.getElementById("diastolicValue").innerHTML = '-- <span class="text-lg font-normal">mmHg</span>';
+      }
+
+      // Vẽ biểu đồ với tất cả dữ liệu BP
+      drawBpChart(allBpData);
+    }
+
+    // Load SPO2 record được chọn
+    function loadSelectedSpo2Record() {
+      const selectedId = document.getElementById('spo2RecordSelect').value;
+      
+      if (!selectedId) {
+        // Reset hiển thị
+        document.getElementById("tempValue").innerHTML = '-- <span class="text-lg font-normal">°C</span>';
+        document.getElementById("oxygenValue").innerHTML = '-- <span class="text-lg font-normal">%</span>';
+        return;
+      }
+
+      // Tìm SPO2 record theo ID
+      const selectedSpo2 = allSpo2Data.find(record => record._id === selectedId || record._id?.toString() === selectedId);
+
+      // Hiển thị dữ liệu
+      if (selectedSpo2) {
+        document.getElementById("tempValue").innerHTML = `${selectedSpo2.temperature || '--'} <span class="text-lg font-normal">°C</span>`;
+        document.getElementById("oxygenValue").innerHTML = `${selectedSpo2.spo2 || '--'} <span class="text-lg font-normal">%</span>`;
+      } else {
+        document.getElementById("tempValue").innerHTML = '-- <span class="text-lg font-normal">°C</span>';
+        document.getElementById("oxygenValue").innerHTML = '-- <span class="text-lg font-normal">%</span>';
+      }
+
+      // Vẽ biểu đồ với tất cả dữ liệu SPO2
+      drawSpo2Chart(allSpo2Data);
+    }
+
+    // Vẽ biểu đồ BP
+    function drawBpChart(bpData) {
+      const ctx = document.getElementById('bpChart').getContext('2d');
+      
+      if (bpChart) {
+        bpChart.destroy();
+      }
+
+      if (!bpData || bpData.length === 0) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.font = '16px Inter';
+        ctx.fillStyle = '#9CA3AF';
+        ctx.textAlign = 'center';
+        ctx.fillText('Chưa có dữ liệu', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        return;
+      }
+
+      const labels = bpData.map(item => {
+        const date = new Date(item.createdAt);
+        return date.toLocaleString('vi-VN', { 
+          day: '2-digit', 
+          month: '2-digit', 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+      });
+
+      bpChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Nhịp tim (bpm)',
+              data: bpData.map(item => item.heart_beat),
+              borderColor: 'rgb(239, 68, 68)',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              borderWidth: 2,
+              tension: 0.4,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Huyết áp tâm thu (mmHg)',
+              data: bpData.map(item => item.systolic),
+              borderColor: 'rgb(34, 197, 94)',
+              backgroundColor: 'rgba(34, 197, 94, 0.1)',
+              borderWidth: 2,
+              tension: 0.4,
+              yAxisID: 'y1'
+            },
+            {
+              label: 'Huyết áp tâm trương (mmHg)',
+              data: bpData.map(item => item.diastolic),
+              borderColor: 'rgb(59, 130, 246)',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              borderWidth: 2,
+              tension: 0.4,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          scales: {
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              title: {
+                display: true,
+                text: 'Nhịp tim (bpm)'
+              }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              title: {
+                display: true,
+                text: 'Huyết áp (mmHg)'
+              },
+              grid: {
+                drawOnChartArea: false,
+              },
+            }
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
+            }
+          }
+        }
+      });
+    }
+
+    // Vẽ biểu đồ SPO2
+    function drawSpo2Chart(spo2Data) {
+      const ctx = document.getElementById('spo2Chart').getContext('2d');
+      
+      if (spo2Chart) {
+        spo2Chart.destroy();
+      }
+
+      if (!spo2Data || spo2Data.length === 0) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.font = '16px Inter';
+        ctx.fillStyle = '#9CA3AF';
+        ctx.textAlign = 'center';
+        ctx.fillText('Chưa có dữ liệu', ctx.canvas.width / 2, ctx.canvas.height / 2);
+        return;
+      }
+
+      const labels = spo2Data.map(item => {
+        const date = new Date(item.createdAt);
+        return date.toLocaleString('vi-VN', { 
+          day: '2-digit', 
+          month: '2-digit', 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+      });
+
+      spo2Chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'SpO₂ (%)',
+              data: spo2Data.map(item => item.spo2),
+              borderColor: 'rgb(37, 99, 235)',
+              backgroundColor: 'rgba(37, 99, 235, 0.1)',
+              tension: 0.4,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Nhiệt độ (°C)',
+              data: spo2Data.map(item => item.temperature),
+              borderColor: 'rgb(16, 185, 129)',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              tension: 0.4,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          scales: {
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              title: {
+                display: true,
+                text: 'SpO₂ (%)'
+              }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              title: {
+                display: true,
+                text: 'Nhiệt độ (°C)'
+              },
+              grid: {
+                drawOnChartArea: false,
+              },
+            }
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
+            }
+          }
+        }
+      });
+    }
+
+    // Khởi tạo khi trang load
+    window.onload = async () => {
+      await loadAllRecords();
+    };
   </script>
 
 </body>

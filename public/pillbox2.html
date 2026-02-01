@@ -170,6 +170,52 @@
       document.getElementById('status-empty').classList.add('hidden');
     }
 
+    async function setSchedule() {
+      // Kiểm tra xem có lịch nào được thiết lập chưa
+      const scheduleKeys = Object.keys(thoiGian);
+      if (scheduleKeys.length === 0) {
+        alert("⚠️ Vui lòng thiết lập ít nhất một lịch nhắc nhở!");
+        return;
+      }
+
+      // Format dữ liệu theo format trong comment: object với keys là string numbers
+      const formattedThoiGian = {};
+      scheduleKeys.forEach((key, index) => {
+        formattedThoiGian[(index + 1).toString()] = {
+          gio: thoiGian[key].gio,
+          ngay: thoiGian[key].ngay
+        };
+      });
+
+      const requestBody = {
+        mode: 'custom',
+        thoiGian: formattedThoiGian
+      };
+
+      try {
+        const response = await fetch('/api/v1/schedule', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          alert(`✅ Đã cập nhật lịch trình thành công! (${scheduleKeys.length} lịch nhắc)`);
+          console.log('✅ Schedule updated:', result);
+        } else {
+          alert(`❌ Lỗi: ${result.message || 'Không thể cập nhật lịch trình'}`);
+          console.error('❌ Schedule update failed:', result);
+        }
+      } catch (error) {
+        alert('❌ Lỗi kết nối đến server!');
+        console.error('❌ Network error:', error);
+      }
+    }
+
     // Phần Menu Socket.io
     fetch("menu.html")
       .then(res => res.text())

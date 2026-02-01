@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const measurementSchema = new mongoose.Schema({
+const bpSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
@@ -10,11 +10,11 @@ const measurementSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    spo2: {
+    systolic : {
         type: Number,
         required: true
     },
-    temp: {
+    diastolic : {
         type: Number,
         required: true
     },
@@ -24,5 +24,26 @@ const measurementSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-const Measurement = mongoose.model("Measurement", measurementSchema);
-export default Measurement;
+const spo2Schema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
+    spo2: {
+        type: Number,
+        required: true
+    },
+    temperature: {
+        type: Number,
+        required: true
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
+}, { timestamps: true });
+const bpModel = mongoose.model("bp", bpSchema);
+const spo2Model = mongoose.model("spo2", spo2Schema);
+export { bpModel, spo2Model };
+

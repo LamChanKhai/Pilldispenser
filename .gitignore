@@ -63,3 +63,6 @@ typings/
 
 # bot telegram
 PillDispenser/secrets.h
+
+MQTT_App_API.postman_collection.json
+API_TEST_BODIES.md

@@ -1,19 +1,126 @@
 #include <Arduino.h>
 #include <driver/i2s.h>
-#include <math.h>
+#include <FS.h>
+#include <LittleFS.h>
 
 #include "audio.h"
 #include "config.h"
 
 // ======================= STATE =======================
 bool alarmActive = false;
-int16_t audioBuffer[256];   // xung sin tạo âm thông báo
+bool playFileActive = false;    // Trạng thái phát file (one-shot)
+bool isLooping = false;         // true = alarm (loop), false = play file (one-shot)
+File wavFile;
+uint32_t wavDataStart = 0;      // Vị trí bắt đầu dữ liệu audio trong file
+uint32_t wavDataSize = 0;       // Kích thước dữ liệu audio
+uint32_t wavBytesRead = 0;     // Số bytes đã đọc
+uint16_t wavSampleRate = 16000; // Sample rate từ WAV file
+uint16_t wavBitsPerSample = 16; // Bits per sample từ WAV file
+uint16_t wavChannels = 1;       // Số kênh từ WAV file
+bool wavFileOpen = false;
 
-bool isAlarmActive() { return alarmActive; }
+float audioGain = 3.0f;         // Hệ số tăng âm lượng (3.0 = tăng gấp 3 lần)
+int16_t audioBuffer[512];       // Buffer để đọc dữ liệu từ WAV
+
+bool isAlarmActive() { return alarmActive || playFileActive; }
+
+// ======================= WAV FILE PARSING ======================
+bool parseWavHeader(File &file) {
+    char chunkID[5] = {0};
+    uint32_t chunkSize;
+    char format[5] = {0};
+    
+    file.seek(0);
+    
+    // Đọc RIFF header
+    file.readBytes(chunkID, 4);
+    if (strncmp(chunkID, "RIFF", 4) != 0) {
+        Serial.println("❌ Not a RIFF file");
+        return false;
+    }
+    
+    file.readBytes((char*)&chunkSize, 4);
+    file.readBytes(format, 4);
+    if (strncmp(format, "WAVE", 4) != 0) {
+        Serial.println("❌ Not a WAVE file");
+        return false;
+    }
+
+    // Tìm chunk "fmt "
+    bool fmtFound = false;
+    while (file.position() < file.size()) {
+        file.readBytes(chunkID, 4);
+        file.readBytes((char*)&chunkSize, 4);
+        
+        if (strncmp(chunkID, "fmt ", 4) == 0) {
+            fmtFound = true;
+            uint16_t audioFormat, numChannels, bitsPerSample, blockAlign;
+            uint32_t sampleRate, byteRate;
+            
+            file.readBytes((char*)&audioFormat, 2);
+            file.readBytes((char*)&numChannels, 2);
+            file.readBytes((char*)&sampleRate, 4);
+            file.readBytes((char*)&byteRate, 4);
+            file.readBytes((char*)&blockAlign, 2);
+            file.readBytes((char*)&bitsPerSample, 2);
+            
+            wavSampleRate = sampleRate;
+            wavChannels = numChannels;
+            wavBitsPerSample = bitsPerSample;
+            
+            // Bỏ qua phần còn lại của fmt chunk nếu có
+            if (chunkSize > 16) {
+                file.seek(file.position() + chunkSize - 16);
+            }
+            break;
+        } else {
+            // Bỏ qua chunk này
+            file.seek(file.position() + chunkSize);
+        }
+    }
+
+    if (!fmtFound) {
+        Serial.println("❌ fmt chunk not found");
+        return false;
+    }
+
+    // Tìm chunk "data"
+    bool dataFound = false;
+    while (file.position() < file.size()) {
+        file.readBytes(chunkID, 4);
+        file.readBytes((char*)&chunkSize, 4);
+        
+        if (strncmp(chunkID, "data", 4) == 0) {
+            dataFound = true;
+            wavDataSize = chunkSize;
+            wavDataStart = file.position();
+            break;
+        } else {
+            // Bỏ qua chunk này
+            file.seek(file.position() + chunkSize);
+        }
+    }
+
+    if (!dataFound) {
+        Serial.println("❌ data chunk not found");
+        return false;
+    }
+
+    Serial.printf("✅ WAV Info: %dHz, %d-bit, %d channel(s), %d bytes\n", 
+                   wavSampleRate, wavBitsPerSample, wavChannels, wavDataSize);
+    return true;
+}
 
 // ======================= INIT I2S ======================
 void initAudioAlarm() {
+    // Khởi tạo LittleFS
+    if (!LittleFS.begin(true)) {
+        Serial.println("❌ LittleFS Mount Failed");
+        return;
+    }
+    Serial.println("✅ LittleFS Mounted");
 
+    // Cấu hình I2S với sample rate mặc định (sẽ được cập nhật khi load WAV)
     i2s_config_t cfg = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
         .sample_rate = SAMPLE_RATE,
@@ -39,35 +146,125 @@ void initAudioAlarm() {
     i2s_set_pin(I2S_NUM_0, &pins);
     i2s_zero_dma_buffer(I2S_NUM_0);
 
-    // 🔊 Generate sine wave for beeping tone
-    for (int i = 0; i < 256; i++) {
-        float p = 2.0f * PI * AUDIO_FREQ * i / SAMPLE_RATE;
-        audioBuffer[i] = sin(p) * 28000;
-    }
-
     Serial.println("Audio Alarm Ready ✓");
 }
 
 // ================ CONTROL FUNCTIONS ===================
 
-void startAlarmSound() {
-    if (!alarmActive) {
-        alarmActive = true;
-        Serial.println("🔊 Alarm ON");
+// Hàm chung để mở và chuẩn bị phát file WAV
+bool openWavFile(const char* filepath, bool loop) {
+    // Dừng phát hiện tại nếu có
+    if (alarmActive || playFileActive) {
+        stopAlarmSound();
     }
+
+    // Mở file WAV
+    if (!LittleFS.exists(filepath)) {
+        Serial.printf("❌ File %s not found!\n", filepath);
+        return false;
+    }
+
+    wavFile = LittleFS.open(filepath, "r");
+    if (!wavFile) {
+        Serial.printf("❌ Cannot open %s\n", filepath);
+        return false;
+    }
+
+    // Parse WAV header
+    if (!parseWavHeader(wavFile)) {
+        wavFile.close();
+        return false;
+    }
+
+    // Cập nhật I2S với sample rate từ WAV file
+    i2s_set_sample_rates(I2S_NUM_0, wavSampleRate);
+
+    // Đặt vị trí file đến đầu dữ liệu audio
+    wavFile.seek(wavDataStart);
+    wavBytesRead = 0;
+    wavFileOpen = true;
+    isLooping = loop;
+
+    if (loop) {
+        alarmActive = true;
+        playFileActive = false;
+        Serial.printf("🔊 Alarm ON - Playing %s (loop)\n", filepath);
+    } else {
+        alarmActive = false;
+        playFileActive = true;
+        Serial.printf("🔊 Playing %s (one-shot)\n", filepath);
+    }
+
+    return true;
+}
+
+void startAlarmSound() {
+    openWavFile("/sounds/alarm.wav", true);
+}
+
+// Hàm mới: phát file WAV với tên file làm tham số (phát một lần)
+void playWavFile(const char* filename) {
+    char filepath[64];
+    snprintf(filepath, sizeof(filepath), "/sounds/%s", filename);
+    openWavFile(filepath, false);
 }
 
 void stopAlarmSound() {
-    if (alarmActive) {
-        alarmActive = false;
-        i2s_zero_dma_buffer(I2S_NUM_0);
-        Serial.println("🔇 Alarm OFF");
+    if (!alarmActive && !playFileActive) return;
+
+    alarmActive = false;
+    playFileActive = false;
+    wavBytesRead = 0;
+    
+    if (wavFileOpen && wavFile) {
+        wavFile.close();
+        wavFileOpen = false;
     }
+
+    i2s_zero_dma_buffer(I2S_NUM_0);
+    Serial.println("🔇 Audio OFF");
 }
 
 void updateAlarmSound() {
-    if (!alarmActive) return;
+    if ((!alarmActive && !playFileActive) || !wavFileOpen || !wavFile) return;
 
+    // Kiểm tra đã phát hết file chưa
+    if (wavBytesRead >= wavDataSize) {
+        if (isLooping) {
+            // Lặp lại từ đầu (cho alarm)
+            wavFile.seek(wavDataStart);
+            wavBytesRead = 0;
+        } else {
+            // Dừng phát (cho play file one-shot)
+            stopAlarmSound();
+            return;
+        }
+    }
+
+    // Đọc dữ liệu từ WAV file
+    size_t bytesToRead = min((uint32_t)sizeof(audioBuffer), wavDataSize - wavBytesRead);
+    size_t bytesRead = wavFile.readBytes((char*)audioBuffer, bytesToRead);
+    
+    if (bytesRead == 0) {
+        // File đã hết, reset về đầu
+        wavFile.seek(wavDataStart);
+        wavBytesRead = 0;
+        return;
+    }
+
+    // Tăng âm lượng bằng cách nhân với gain và clamp để tránh clipping
+    size_t samplesCount = bytesRead / sizeof(int16_t);
+    for (size_t i = 0; i < samplesCount; i++) {
+        int32_t amplified = (int32_t)audioBuffer[i] * audioGain;
+        // Clamp giá trị trong phạm vi int16_t để tránh clipping
+        if (amplified > 32767) amplified = 32767;
+        if (amplified < -32768) amplified = -32768;
+        audioBuffer[i] = (int16_t)amplified;
+    }
+
+    // Gửi dữ liệu đến I2S
     size_t written;
-    i2s_write(I2S_NUM_0, (const char*)audioBuffer, sizeof(audioBuffer), &written, portMAX_DELAY);
+    i2s_write(I2S_NUM_0, (const char*)audioBuffer, bytesRead, &written, portMAX_DELAY);
+    
+    wavBytesRead += bytesRead;
 }

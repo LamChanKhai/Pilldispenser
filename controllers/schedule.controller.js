@@ -1,68 +1,4 @@
-import mqtt from 'mqtt';
-import {  MQTT_BROKER_URL, DEFAULT_USER_ID } from '../config/env.js';
-import { io } from '../app.js';
-import { saveMeasurement } from './measurement.controller.js';
-import mongoose from 'mongoose';
-
-// Kết nối MQTT broker
-const client = mqtt.connect(MQTT_BROKER_URL); 
-// 👉 sau này bạn thay localhost bằng VPS_PUBLIC_IP
-client.subscribe('pill/data/log');
-client.subscribe('pill/data/status');
-client.subscribe('pill/data/measurement');
-client.on('connect', () => {
-  console.log('✅ Connected to MQTT broker');
-});
-
-client.on('message', async (topic, message) => {
-  console.log(`📨 Received from ${topic}: ${message.toString()}`);
-  
-  if(topic === 'pill/data/status') {
-    const status = message.toString();
-    // send status to frontend
-    io.emit('pill/data/status', status);
-    console.log('📨 Sent to frontend:', status);
-  } else if(topic === 'pill/data/measurement') {
-    try {
-      const measurementData = JSON.parse(message.toString());
-      console.log('🫀 Received measurement data:', measurementData);
-      
-      // Lưu vào database
-      // Sử dụng userId từ measurementData hoặc userId mặc định từ config
-      let userId = measurementData.userId || DEFAULT_USER_ID;
-      
-      if (!userId) {
-        console.warn('⚠️ userId missing in measurement data and no DEFAULT_USER_ID configured, skipping save');
-        // Vẫn gửi qua WebSocket để frontend có thể xử lý
-        io.emit('pill/data/measurement', measurementData);
-        return;
-      }
-      
-      // Đảm bảo userId là ObjectId hợp lệ
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        console.error('❌ Invalid userId format:', userId);
-        return;
-      }
-      
-      const dataToSave = {
-        userId: new mongoose.Types.ObjectId(userId),
-        heart_beat: measurementData.heart_beat,
-        spo2: measurementData.spo2,
-        temp: measurementData.temp
-      };
-      
-      await saveMeasurement(dataToSave);
-      console.log('✅ Measurement saved to database');
-      
-      // Gửi qua WebSocket cho frontend
-      io.emit('pill/data/measurement', measurementData);
-      console.log('📨 Sent measurement to frontend');
-    } catch (error) {
-      console.error('❌ Error processing measurement:', error);
-    }
-  }
-});
-
+import { mqttClient } from './mqtt.controller.js';
 
 export const setSchedule = (req, res) => {
   console.log('⏰ Setting schedule with data:', req.body);
@@ -76,7 +12,7 @@ export const setSchedule = (req, res) => {
     if(sang > toi) {
       return res.status(400).json({ message: 'Morning time must be before evening time' });
     }
-    client.publish('pill/command/schedule', (mode + "," + sang + "," + toi));
+    mqttClient.publish('pill/command/schedule', (mode + "," + sang + "," + toi));
     console.log(`⏰ Schedule set for ${sang} and ${toi}`);
     res.status(200).json({ message: `Schedule set for ${sang} and ${toi}` });
   } else if(mode === 'custom') {
@@ -92,6 +28,7 @@ export const setSchedule = (req, res) => {
     //  thoiGian: {
     //    '1': { gio: '11:11', ngay: '1111-11-11' },
     //    '2': { gio: '22:22', ngay: '2222-02-22' }
+    //    ...
     //  }
     //}
     for (let i = 0; i < thoiGian.length - 1; i++) {
@@ -102,8 +39,12 @@ export const setSchedule = (req, res) => {
         return res.status(400).json({ message: 'Giờ uống phải tăng dần' });
       }
     }
-    client.publish('pill/command/schedule', (JSON.stringify({mode:'custom',thoiGian})));
+    mqttClient.publish('pill/command/schedule', (JSON.stringify({mode:'custom',thoiGian})));
     res.status(200).json({ message: `Schedule set for ${thoiGian.length}` });
-    }
-  };
+  }
+};
 
+export const refill = (req, res) => {
+  mqttClient.publish('pill/command/refill' );
+  res.status(200).json({ message: `Refilling` });
+};
