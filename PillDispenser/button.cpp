@@ -3,6 +3,8 @@
 #include "config.h"
 #include "audio.h"
 #include "motor.h"
+#include "bp.h"
+#include "time.h"
 
 // ====== DEBOUNCE ======
 int lastButtonState   = HIGH;
@@ -41,10 +43,14 @@ void handleButton() {
 
                 Serial.println("🔘 BUTTON PRESSED");
 
-                // Nếu alarm đang chạy → tắt ngay
+                // Nếu alarm đang chạy → tắt ngay và gửi thông báo Telegram
                 if (isAlarmActive()) {
                     stopAlarmSound();
                     Serial.println("🔇 Alarm stopped");
+                    
+                    // Gửi thông báo đã lấy thuốc đến Telegram
+                    sendTelegramPillTaken();
+                    Serial.println("📨 Telegram notification sent: Pill taken");
                 }
 
                 // Mở servo thả thuốc xuống

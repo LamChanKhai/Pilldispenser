@@ -16,6 +16,9 @@
     <!-- Icon + nút menu mobile -->
     <div class="flex items-center space-x-4">
       <span id="wifi-status" class="text-gray-400 text-xl md:text-2xl animate-pulse" title="Đang kết nối...">📡</span>
+      <button onclick="logout()" class="text-sm text-gray-600 hover:text-red-600 transition px-3 py-1 rounded-lg hover:bg-red-50" title="Đăng xuất">
+        Đăng xuất
+      </button>
       <button class="md:hidden text-gray-600 hover:text-green-600 transition text-2xl" onclick="toggleMenu()">
         ☰
       </button>
@@ -29,5 +32,14 @@
     <a href="measurement.html" class="hover:text-green-600 transition">Đo sinh hóa</a>
     <a href="setTime.html" class="hover:text-green-600 transition">Hẹn giờ thuốc</a>
     <a href="predict.html" class="hover:text-green-600 transition">Dự đoán</a>
+    <button onclick="logout()" class="text-gray-700 hover:text-red-600 transition px-3 py-1 rounded-lg hover:bg-red-50">
+      Đăng xuất
+    </button>
   </div>
 </nav>
+<script>
+  function logout() {
+    localStorage.removeItem('token');
+    window.location.href = 'login.html';
+  }
+</script>

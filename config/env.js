@@ -15,6 +15,8 @@ export const DEFAULT_USER_ID = process.env.DEFAULT_USER_ID || null;
 export const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 export const GEMINI_MODEL = process.env.GEMINI_MODEL;
 
+export const JWT_SECRET = process.env.JWT_SECRET ;
+
 // Debug log để kiểm tra trên Vercel (xem trong log)
 if (!DB_URI) {
   console.error("❌ DB_URI is missing in environment variables!");

@@ -8,6 +8,7 @@
 #include <HTTPClient.h>
 #include "secrets.h"
 #include "audio.h"
+#include "time.h"
 #define BP_RXD 16
 #define BP_TXD -1
 
@@ -118,5 +119,88 @@ void sendTelegramAlert(int sys, int dia, int pulse) {
         playWavFile("Gui_du_lieu_hoan_tat.wav");
     } else {
         Serial.printf("❌ Telegram alert failed, code: %d\n", httpCode);
+    }
+}
+
+void sendTelegramPillTaken() {
+    WiFiClientSecure client;
+    client.setInsecure();  // bỏ SSL check
+
+    HTTPClient https;
+
+    // Lấy thời gian hiện tại
+    struct tm timeinfo;
+    String timeStr = "";
+    if (getLocalTime(&timeinfo)) {
+        char timeBuffer[32];
+        strftime(timeBuffer, sizeof(timeBuffer), "%d/%m/%Y %H:%M:%S", &timeinfo);
+        timeStr = String(timeBuffer);
+    }
+
+    String message =
+        "✅ ĐÃ LẤY THUỐC\n"
+        "Thời gian: " + timeStr + "\n"
+        "Người dùng đã nhấn nút và lấy thuốc thành công.";
+
+    String url =
+        "https://api.telegram.org/bot" TELEGRAM_BOT_TOKEN
+        "/sendMessage?chat_id=" TELEGRAM_CHAT_ID
+        "&text=" + message;
+
+    url.replace(" ", "%20");
+    url.replace("\n", "%0A");
+    
+    Serial.println("📤 Sending pill taken notification to Telegram...");
+
+    https.begin(client, url);
+    int httpCode = https.GET();
+    https.end();
+
+    if (httpCode == 200) {
+        Serial.println("📨 Telegram notification sent successfully");
+    } else {
+        Serial.printf("❌ Telegram notification failed, code: %d\n", httpCode);
+    }
+}
+
+void sendTelegramPillNotTaken() {
+    WiFiClientSecure client;
+    client.setInsecure();  // bỏ SSL check
+
+    HTTPClient https;
+
+    // Lấy thời gian hiện tại
+    struct tm timeinfo;
+    String timeStr = "";
+    if (getLocalTime(&timeinfo)) {
+        char timeBuffer[32];
+        strftime(timeBuffer, sizeof(timeBuffer), "%d/%m/%Y %H:%M:%S", &timeinfo);
+        timeStr = String(timeBuffer);
+    }
+
+    String message =
+        "⚠️ CHƯA UỐNG THUỐC\n"
+        "Thời gian: " + timeStr + "\n"
+        "Alarm đã kêu 5 phút nhưng chưa có ai bấm nút lấy thuốc.\n"
+        "Vui lòng kiểm tra và lấy thuốc ngay!";
+
+    String url =
+        "https://api.telegram.org/bot" TELEGRAM_BOT_TOKEN
+        "/sendMessage?chat_id=" TELEGRAM_CHAT_ID
+        "&text=" + message;
+
+    url.replace(" ", "%20");
+    url.replace("\n", "%0A");
+    
+    Serial.println("📤 Sending pill not taken notification to Telegram...");
+
+    https.begin(client, url);
+    int httpCode = https.GET();
+    https.end();
+
+    if (httpCode == 200) {
+        Serial.println("📨 Telegram notification sent successfully");
+    } else {
+        Serial.printf("❌ Telegram notification failed, code: %d\n", httpCode);
     }
 }

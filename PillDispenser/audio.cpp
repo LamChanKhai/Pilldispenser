@@ -5,6 +5,7 @@
 
 #include "audio.h"
 #include "config.h"
+#include "bp.h"  // Để gọi sendTelegramPillNotTaken()
 
 // ======================= STATE =======================
 bool alarmActive = false;
@@ -18,6 +19,11 @@ uint16_t wavSampleRate = 16000; // Sample rate từ WAV file
 uint16_t wavBitsPerSample = 16; // Bits per sample từ WAV file
 uint16_t wavChannels = 1;       // Số kênh từ WAV file
 bool wavFileOpen = false;
+
+// ======================= ALARM TIMING =======================
+unsigned long alarmStartTime = 0;        // Thời gian alarm bắt đầu
+bool notificationSent = false;           // Flag đã gửi thông báo chưa uống thuốc
+const unsigned long ALARM_TIMEOUT_MS = 300000;  // 5 phút = 300000ms
 
 float audioGain = 3.0f;         // Hệ số tăng âm lượng (3.0 = tăng gấp 3 lần)
 int16_t audioBuffer[512];       // Buffer để đọc dữ liệu từ WAV
@@ -188,6 +194,8 @@ bool openWavFile(const char* filepath, bool loop) {
     if (loop) {
         alarmActive = true;
         playFileActive = false;
+        alarmStartTime = millis();  // Lưu thời gian bắt đầu alarm
+        notificationSent = false;    // Reset flag thông báo
         Serial.printf("🔊 Alarm ON - Playing %s (loop)\n", filepath);
     } else {
         alarmActive = false;
@@ -215,6 +223,8 @@ void stopAlarmSound() {
     alarmActive = false;
     playFileActive = false;
     wavBytesRead = 0;
+    alarmStartTime = 0;      // Reset thời gian alarm
+    notificationSent = false; // Reset flag thông báo
     
     if (wavFileOpen && wavFile) {
         wavFile.close();
@@ -227,6 +237,16 @@ void stopAlarmSound() {
 
 void updateAlarmSound() {
     if ((!alarmActive && !playFileActive) || !wavFileOpen || !wavFile) return;
+
+    // Kiểm tra nếu alarm đang chạy và đã qua 5 phút mà chưa gửi thông báo
+    if (alarmActive && alarmStartTime > 0 && !notificationSent) {
+        unsigned long elapsed = millis() - alarmStartTime;
+        if (elapsed >= ALARM_TIMEOUT_MS) {
+            Serial.println("⏰ Alarm đã kêu 5 phút - Gửi thông báo chưa uống thuốc");
+            sendTelegramPillNotTaken();
+            notificationSent = true;  // Đánh dấu đã gửi để không spam
+        }
+    }
 
     // Kiểm tra đã phát hết file chưa
     if (wavBytesRead >= wavDataSize) {

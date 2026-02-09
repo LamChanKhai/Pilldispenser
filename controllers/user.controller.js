@@ -1,4 +1,91 @@
 import User from "../model/user.model.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config/env.js";
+
+// Đăng ký user mới
+export const register = async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+
+        // Kiểm tra email đã tồn tại chưa
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: "Email đã được sử dụng" });
+        }
+
+        // Mã hóa password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Tạo user mới
+        const user = new User({
+            name,
+            email,
+            password: hashedPassword
+        });
+
+        await user.save();
+
+        // Tạo token
+        const token = jwt.sign(
+            { userId: user._id, email: user.email },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        res.status(201).json({
+            message: "Đăng ký thành công",
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email
+            }
+        });
+    } catch (error) {
+        console.error("Error registering user:", error);
+        res.status(500).json({ message: "Lỗi máy chủ" });
+    }
+};
+
+// Đăng nhập
+export const login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Tìm user theo email
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).json({ message: "Email hoặc mật khẩu không đúng" });
+        }
+
+        // Kiểm tra password
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: "Email hoặc mật khẩu không đúng" });
+        }
+
+        // Tạo token
+        const token = jwt.sign(
+            { userId: user._id, email: user.email },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        res.json({
+            message: "Đăng nhập thành công",
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email
+            }
+        });
+    } catch (error) {
+        console.error("Error logging in:", error);
+        res.status(500).json({ message: "Lỗi máy chủ" });
+    }
+};
 
 // Tạo user mới
 export const createUser = async (req, res) => {
