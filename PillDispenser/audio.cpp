@@ -19,6 +19,7 @@ uint16_t wavSampleRate = 16000; // Sample rate từ WAV file
 uint16_t wavBitsPerSample = 16; // Bits per sample từ WAV file
 uint16_t wavChannels = 1;       // Số kênh từ WAV file
 bool wavFileOpen = false;
+static const char* nextWavFilename = nullptr;  // File phát tiếp sau khi one-shot xong (để nối 2 file)
 
 // ======================= ALARM TIMING =======================
 unsigned long alarmStartTime = 0;        // Thời gian alarm bắt đầu
@@ -212,6 +213,15 @@ void startAlarmSound() {
 
 // Hàm mới: phát file WAV với tên file làm tham số (phát một lần)
 void playWavFile(const char* filename) {
+    nextWavFilename = nullptr;
+    char filepath[64];
+    snprintf(filepath, sizeof(filepath), "/sounds/%s", filename);
+    openWavFile(filepath, false);
+}
+
+// Phát file thứ nhất, khi xong tự phát file thứ hai (one-shot cho cả hai)
+void playWavFileThen(const char* filename, const char* nextFilename) {
+    nextWavFilename = nextFilename;
     char filepath[64];
     snprintf(filepath, sizeof(filepath), "/sounds/%s", filename);
     openWavFile(filepath, false);
@@ -255,7 +265,16 @@ void updateAlarmSound() {
             wavFile.seek(wavDataStart);
             wavBytesRead = 0;
         } else {
-            // Dừng phát (cho play file one-shot)
+            // One-shot xong: nếu có file tiếp theo thì phát, không thì dừng
+            if (nextWavFilename != nullptr) {
+                char filepath[64];
+                snprintf(filepath, sizeof(filepath), "/sounds/%s", nextWavFilename);
+                nextWavFilename = nullptr;
+                wavFile.close();
+                wavFileOpen = false;
+                openWavFile(filepath, false);
+                return;
+            }
             stopAlarmSound();
             return;
         }

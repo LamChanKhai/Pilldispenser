@@ -9,7 +9,7 @@
 #include "schedule.h"
 #include "button.h"
 #include "bp.h"
-//#include "max3010.h"
+#include "max3010.h"
 #include "time.h"
 // ===== MQTT =====
 WiFiClient espClient;
@@ -28,7 +28,7 @@ unsigned long lastMqttAttempt = 0;
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
     String msg = "";
     for (int i = 0; i < length; i++) msg += (char)payload[i];
-
+    Serial.println(msg);
     if (String(topic) == mqtt_topic_sub)     setSchedule(msg);   // App gửi lịch uống thuốc
     if (String(topic) == mqtt_topic_config) {
         if (msg == "dispense") dispensePill();  // Cấp thuốc thủ công qua app
@@ -56,6 +56,7 @@ void reconnectMQTT() {
         Serial.println("MQTT reconnected ✓");
         client.subscribe(mqtt_topic_sub);
         client.subscribe(mqtt_topic_config);
+        client.subscribe(mqtt_topic_refill);
         client.publish(mqtt_topic_status, "online", true);
 
     } else {
@@ -79,7 +80,7 @@ void setup() {
     initAudioAlarm();
     clearSchedule();  // Lịch trống ban đầu
     initBP();
-    //initMAX3010();
+    initMAX3010();
     // ==== WIFI ====
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
@@ -121,7 +122,7 @@ void loop() {
     // Gọi measureAndPublish() mỗi lần loop để state machine hoạt động non-blocking
     // Hàm này sẽ tự quản lý timing và chỉ bắt đầu đo mới sau khi hoàn thành đo trước đó
     
-    //measureAndPublish();
+    measureAndPublish();
     handleBPSerial();   // đọc dữ liệu huyết áp liên tục
 
     delay(20);

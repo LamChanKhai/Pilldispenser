@@ -212,7 +212,7 @@
 
     function rotateCompartments() {
       // Xoay các ngăn một góc 360/15 (một vị trí)
-      fetch('/schedule/refill')
+      fetch('/api/v1/schedule/refill')
         .then(res => res.json())
         .then(data => {
           console.log(data);

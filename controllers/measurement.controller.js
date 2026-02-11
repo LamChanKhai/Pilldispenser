@@ -43,9 +43,9 @@ export const handleMeasurementMessage = async (message) => {
     
     const dataToSave = {
       userId: new mongoose.Types.ObjectId(userId),
-      heart_beat: measurementData.heart_beat,
+      heart_beat: measurementData.heart || measurementData.heart_beat,  // Hỗ trợ cả 'heart' và 'heart_beat'
       spo2: measurementData.spo2,
-      temp: measurementData.temp
+      temp: measurementData.temp || measurementData.temperature  // Hỗ trợ cả 'temp' và 'temperature'
     };
     
     await saveMeasurement(dataToSave);
@@ -68,12 +68,23 @@ export const handleMeasurementMessage = async (message) => {
  */
 export const saveMeasurement = async (data) => {
   try {
-    // Lưu vào spo2Model vì có spo2 và temperature
-    const measurement = new spo2Model({
+    // Lưu vào spo2Model với spo2, heart_beat (optional), và temperature (optional)
+    const measurementData = {
       userId: data.userId,
-      spo2: data.spo2,
-      temperature: data.temp
-    });
+      spo2: data.spo2
+    };
+    
+    // Chỉ thêm heart_beat nếu có giá trị
+    if (data.heart_beat !== undefined && data.heart_beat !== null) {
+      measurementData.heart_beat = data.heart_beat;
+    }
+    
+    // Chỉ thêm temperature nếu có giá trị
+    if (data.temp !== undefined && data.temp !== null) {
+      measurementData.temperature = data.temp;
+    }
+    
+    const measurement = new spo2Model(measurementData);
     await measurement.save();
     console.log('✅ Measurement (SPO2) saved');
   } catch (error) {
