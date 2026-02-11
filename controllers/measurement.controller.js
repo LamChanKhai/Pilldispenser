@@ -1,5 +1,5 @@
 import { bpModel, spo2Model } from "../model/measurement.model.js";
-import { io } from '../app.js';
+import { emit } from "../realtime/socket.js";
 import { DEFAULT_USER_ID } from '../config/env.js';
 import mongoose from 'mongoose';
 
@@ -12,7 +12,7 @@ import mongoose from 'mongoose';
  */
 export const handleStatusMessage = (status) => {
   // Gửi status đến frontend qua WebSocket
-  io.emit('pill/data/status', status);
+  emit("pill/data/status", status);
   console.log('📨 Sent status to frontend:', status);
 };
 
@@ -31,7 +31,7 @@ export const handleMeasurementMessage = async (message) => {
     if (!userId) {
       console.warn('⚠️ userId missing in measurement data and no DEFAULT_USER_ID configured, skipping save');
       // Vẫn gửi qua WebSocket để frontend có thể xử lý
-      io.emit('pill/data/measurement', measurementData);
+      emit("pill/data/measurement", measurementData);
       return;
     }
     
@@ -52,7 +52,7 @@ export const handleMeasurementMessage = async (message) => {
     console.log('✅ Measurement saved to database');
     
     // Gửi qua WebSocket cho frontend
-    io.emit('pill/data/measurement', measurementData);
+    emit("pill/data/measurement", measurementData);
     console.log('📨 Sent measurement to frontend');
   } catch (error) {
     console.error('❌ Error processing measurement:', error);

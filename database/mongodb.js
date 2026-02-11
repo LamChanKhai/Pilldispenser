@@ -1,19 +1,37 @@
 import mongoose from "mongoose";
 import { DB_URI , NODE_ENV } from "../config/env.js";
 
-if(!DB_URI){
-    throw new Error('DB_URI is not defined in environment variables');
-}
+/**
+ * Serverless-friendly MongoDB connection helper.
+ * - Caches the connection/promise across invocations (Vercel).
+ * - Ensures queries don't "buffer timeout" because connect wasn't called.
+ */
 
-const connecToDatabase = async () => {
-    try{
-        await mongoose.connect(DB_URI);
+const globalForMongoose = globalThis;
 
-        console.log(`Connected to MongoDB in ${NODE_ENV} mode`);
-    } catch (error) {
-        console.error('Failed to connect to MongoDB', error);
-        process.exit(1);
-    }
-}
+const cached =
+  globalForMongoose.__mongooseCached ||
+  (globalForMongoose.__mongooseCached = { conn: null, promise: null });
 
-export default connecToDatabase;
+const connectToDatabase = async () => {
+  if (!DB_URI) {
+    throw new Error("DB_URI is not defined in environment variables");
+  }
+
+  if (cached.conn) return cached.conn;
+
+  if (!cached.promise) {
+    cached.promise = mongoose
+      .connect(DB_URI, {
+        // Fail faster in serverless so requests don't hang too long
+        serverSelectionTimeoutMS: 10_000
+      })
+      .then((m) => m);
+  }
+
+  cached.conn = await cached.promise;
+  console.log(`Connected to MongoDB in ${NODE_ENV} mode`);
+  return cached.conn;
+};
+
+export default connectToDatabase;

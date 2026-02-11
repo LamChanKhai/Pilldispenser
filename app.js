@@ -2,37 +2,32 @@ import express from "express";
 import bodyParser from "body-parser";
 import path from "path";
 import { fileURLToPath } from "url";
-import { createServer } from "http";
 import scheduleRouter from "./routes/schedule.route.js";
 import measurementRouter from "./routes/measurement.route.js";
 import userRouter from "./routes/user.route.js";
 import geminiRouter from "./routes/gemini.route.js";
-import { PORT } from "./config/env.js";
-import { Server } from "socket.io";
-import connecToDatabase from "./database/mongodb.js";
+import connectToDatabase from "./database/mongodb.js";
 import predictRoute from "./routes/predict.route.js";
-import "./controllers/mqtt.controller.js"; // Khởi tạo MQTT connection
 
 // Fix __dirname trong ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const server = createServer(app);
-
-export const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"]
-  }
-});
 
 // Middleware
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-io.on("connection", (socket) => {
-  console.log("A user connected");
+// Ensure MongoDB is connected before hitting API routes (serverless-friendly)
+app.use("/api", async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (error) {
+    console.error("Failed to connect to MongoDB", error);
+    res.status(500).json({ message: "Database connection failed" });
+  }
 });
 
 // Routes
@@ -43,11 +38,5 @@ app.use("/api/v1/user", userRouter);
 app.use("/api/v1/gemini", geminiRouter);
 
 app.use("/api/predict", predictRoute);
-
-// Start server
-server.listen(PORT, async () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-  await connecToDatabase();
-});
 
 export default app;
