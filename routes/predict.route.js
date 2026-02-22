@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
     try {
-        const response = await fetch("https://ten-app-cua-ban.onrender.com/predict", {
+        const response = await fetch("http://34.158.48.218/predict", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(req.body)
