@@ -1,6 +1,19 @@
 import { mqttClient } from './mqtt.controller.js';
 
+/** Kiểm tra MQTT có sẵn sàng (cần server chạy lâu dài, KHÔNG chạy trên Vercel serverless) */
+function ensureMqtt(res) {
+  if (!mqttClient || !mqttClient.connected) {
+    res.status(503).json({
+      message: 'MQTT không khả dụng. Ứng dụng cần chạy trên server có process lâu dài (Railway, Render, VPS...) thay vì Vercel.',
+      code: 'MQTT_UNAVAILABLE'
+    });
+    return false;
+  }
+  return true;
+}
+
 export const setSchedule = (req, res) => {
+  if (!ensureMqtt(res)) return;
   console.log('⏰ Setting schedule with data:', req.body);
   const { mode } = req.body;
   if(mode === 'quick') {
@@ -45,6 +58,7 @@ export const setSchedule = (req, res) => {
 };
 
 export const refill = (req, res) => {
+  if (!ensureMqtt(res)) return;
   mqttClient.publish('pill/command/refill' );
   res.status(200).json({ message: `Refilling` });
 };
