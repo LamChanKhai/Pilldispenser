@@ -3,7 +3,7 @@
 
 set -e
 
-echo "🚀 Setup production environment..."
+echo " Setup production environment..."
 
 USER=$(whoami)
 APP_DIR="$HOME/Pilldispenser/ml"
@@ -11,12 +11,12 @@ VENV_DIR="$APP_DIR/venv"
 
 # Cài Nginx nếu chưa có
 if ! command -v nginx &> /dev/null; then
-    echo "📦 Cài Nginx..."
+    echo " Cài Nginx..."
     sudo apt install nginx -y
 fi
 
 # Tạo systemd service cho Flask app
-echo "🔧 Tạo systemd service..."
+echo " Tạo systemd service..."
 sudo tee /etc/systemd/system/flask-app.service > /dev/null <<EOF
 [Unit]
 Description=Flask ML App
@@ -44,7 +44,7 @@ EOF
 EXTERNAL_IP=$(curl -s ifconfig.me || hostname -I | awk '{print $1}')
 
 # Tạo Nginx config
-echo "🌐 Setup Nginx..."
+echo " Setup Nginx..."
 sudo tee /etc/nginx/sites-available/flask-app > /dev/null <<EOF
 server {
     listen 80;
@@ -74,34 +74,34 @@ sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 
 # Setup firewall (local) - Optional, GCP có firewall riêng
-echo "🔥 Setup local firewall (optional)..."
+echo " Setup local firewall (optional)..."
 if command -v ufw &> /dev/null; then
     sudo ufw allow 22/tcp
     sudo ufw allow 80/tcp
     sudo ufw allow 443/tcp
     sudo ufw --force enable
 else
-    echo "⚠️  ufw không có sẵn. Không sao, GCP đã có firewall riêng."
+    echo "  ufw không có sẵn. Không sao, GCP đã có firewall riêng."
     echo "   Chỉ cần mở port 80 trong GCP Console là đủ."
 fi
 
 # Enable và start services
-echo "🔄 Start services..."
+echo " Start services..."
 sudo systemctl daemon-reload
 sudo systemctl enable flask-app
 sudo systemctl restart flask-app
 sudo systemctl restart nginx
 
-echo "✅ Setup hoàn tất!"
+echo " Setup hoàn tất!"
 echo ""
-echo "📊 Kiểm tra status:"
+echo " Kiểm tra status:"
 sudo systemctl status flask-app --no-pager | head -10
 echo ""
-echo "🌐 App URL: http://$EXTERNAL_IP"
+echo " App URL: http://$EXTERNAL_IP"
 echo ""
-echo "⚠️  QUAN TRỌNG: Cần mở port 80 trong Google Cloud Firewall!"
+echo "  QUAN TRỌNG: Cần mở port 80 trong Google Cloud Firewall!"
 echo "   Vào GCP Console → VPC Network → Firewall Rules"
 echo "   Tạo rule: allow-http, port 80, source: 0.0.0.0/0"
 echo ""
-echo "🧪 Test:"
+echo " Test:"
 echo "  curl http://$EXTERNAL_IP/"

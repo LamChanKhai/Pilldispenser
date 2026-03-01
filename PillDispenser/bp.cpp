@@ -116,7 +116,7 @@ void sendTelegramAlert(int sys, int dia, int pulse) {
     if (httpCode == 200) {
         Serial.println("📨 Telegram alert sent successfully");
         // Phát file WAV thông báo gửi dữ liệu hoàn tất
-        playWavFile("Gui_du_lieu_hoan_tat.wav");
+        playWavFileThen("Gui_du_lieu_hoan_tat.wav","Gui_du_lieu_hoan_tat.wav");
     } else {
         Serial.printf("❌ Telegram alert failed, code: %d\n", httpCode);
     }

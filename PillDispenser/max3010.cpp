@@ -151,7 +151,7 @@ void measureAndPublish() {
                         consecutiveLowSamples = 0;  // Reset counter
 
                         // Phát âm thanh bắt đầu đo nhiệt độ và oxy trong máu
-                        playWavFile("Bat_dau_do.wav");
+                        playWavFileThen("Bat_dau_do.wav","Bat_dau_do.wav");
 
                         // Lưu sample đầu tiên
                         irBuff[0] = ir;
