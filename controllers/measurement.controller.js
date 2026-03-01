@@ -41,14 +41,20 @@ export const handleMeasurementMessage = async (message) => {
       return;
     }
     
-    const dataToSave = {
+    /*const dataToSave = {
       userId: new mongoose.Types.ObjectId(userId),
       heart_beat: measurementData.heart || measurementData.heart_beat,  // Hỗ trợ cả 'heart' và 'heart_beat'
       spo2: measurementData.spo2,
       temp: measurementData.temp || measurementData.temperature  // Hỗ trợ cả 'temp' và 'temperature'
     };
     
-    await saveMeasurement(dataToSave);
+    await saveMeasurement(dataToSave); */
+    
+    if(measurementData.type === "blood_pressure") {
+      await saveBpInternal(measurementData);
+    } else if(measurementData.type === "spo2") {
+      await saveSpo2Internal(measurementData);
+    }
     console.log('✅ Measurement saved to database');
     
     // Gửi qua WebSocket cho frontend
@@ -95,6 +101,7 @@ export const saveMeasurement = async (data) => {
 
 /**
  * Lưu dữ liệu bp từ MQTT vào MongoDB (Route handler)
+ * 
  */
 export const saveBp = async (req, res) => {
   try {
@@ -137,10 +144,24 @@ export const saveSpo2 = async (req, res) => {
 
 /**
  * Lưu dữ liệu bp từ MQTT vào MongoDB (Internal function)
+ * 🫀 Received measurement data: {
+  userId: '69133fba40de254edf366794',
+  type: 'blood_pressure',
+  sys: 138,
+  dia: 84,
+  pulse: 101,
+  time: '2020-01-01 08:00:50'
+}
  */
 export const saveBpInternal = async (data) => {
   try {
-    const bp = new bpModel(data);
+    const bp = new bpModel({
+      userId: data.userId,
+      systolic: data.sys,
+      diastolic: data.dia,
+      heart_beat: data.pulse,
+      time: data.time
+    });
     await bp.save();
   } catch (error) {
     console.error("Error saving bp:", error);

@@ -252,7 +252,7 @@ void measureAndPublish() {
                     doc["spo2"] = spo2;
                     doc["temp"] = temperature;   // gửi nhiệt độ (°C)
                     doc["ts"]   = millis();
-
+                    doc["type"] = "spo2"; 
                     String payload;
                     serializeJson(doc, payload);
 
