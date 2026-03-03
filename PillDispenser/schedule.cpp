@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include "schedule.h"
+#include "audio.h"
 
 // ======= STRUCT LỊCH =======
 struct ScheduleEntry {
@@ -12,6 +13,24 @@ ScheduleEntry scheduleList[14];
 int scheduleCount = 0;
 int currentIndex  = 0;
 
+// Lưu lại mốc thời gian (HH:MM) đã bắn lần gần nhất
+// để trong cùng một phút không bắn lại nữa.
+char lastTriggeredTime[6] = {0};
+bool hasLastTriggered = false;
+
+// =======================================================
+// TIỆN ÍCH: KIỂM TRA GIỜ ĐÃ TỒN TẠI CHƯA
+// (tránh trùng mốc → 1 phút bắn nhiều lần)
+// =======================================================
+bool isTimeAlreadyScheduled(const char* timeStr) {
+    for (int i = 0; i < scheduleCount; i++) {
+        if (scheduleList[i].active && strcmp(scheduleList[i].time, timeStr) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // =======================================================
 // XÓA LỊCH
 // =======================================================
@@ -22,6 +41,8 @@ void clearSchedule() {
     }
     scheduleCount = 0;
     currentIndex  = 0;
+    hasLastTriggered = false;
+    memset(lastTriggeredTime, 0, sizeof(lastTriggeredTime));
     Serial.println("🗑 Schedule cleared");
 }
 
@@ -64,7 +85,20 @@ void parseCustomJSON(String json){
     for(JsonPair kv : tg){
         JsonObject item = kv.value();
         if(item.containsKey("gio")){
-            addSchedule(item["gio"].as<String>());
+            String gioStr = item["gio"].as<String>();
+            gioStr.trim();
+
+            char tmp[6];
+            gioStr.toCharArray(tmp, 6);
+
+            // Nếu giờ này đã có trong scheduleList thì bỏ qua,
+            // tránh 1 mốc giờ trùng xuất hiện nhiều entry khác nhau
+            if (isTimeAlreadyScheduled(tmp)) {
+                Serial.printf("⚠ Duplicate time %s skipped (custom)\n", tmp);
+                continue;
+            }
+
+            addSchedule(gioStr);
         }
     }
     Serial.printf("📥 Loaded %d schedule items (custom)\n",scheduleCount);
@@ -113,6 +147,7 @@ void setSchedule(String data){
     else Serial.println("❌ Unknown schedule format");
 
     Serial.printf("📅 TOTAL SCHEDULE LOADED = %d\n",scheduleCount);
+    beepOnce();
 }
 
 // =======================================================
@@ -133,12 +168,24 @@ void checkSchedule(void (*dispenseFunc)()){
 
     char now[6];
     sprintf(now,"%02d:%02d",timeinfo.tm_hour,timeinfo.tm_min);
+
+    // Nếu trong cùng phút này đã từng bắn rồi
+    // thì bỏ qua, đợi sang phút mới.
+    if (hasLastTriggered && strcmp(now, lastTriggeredTime) == 0) {
+        return;
+    }
+
     //Serial.printf("🕒 NOW = %s - Time to check: %s\n",now,scheduleList[currentIndex].time);
     if(scheduleList[currentIndex].active &&
        strcmp(scheduleList[currentIndex].time,now)==0){
 
         Serial.printf("⏰ TIME MATCH → %s → DISPENSE!\n",now);
         dispenseFunc();
+
+        // Ghi lại phút vừa bắn để không bắn lại nữa
+        strcpy(lastTriggeredTime, now);
+        hasLastTriggered = true;
+
         currentIndex++;
 
         if(currentIndex >= scheduleCount)

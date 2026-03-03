@@ -133,8 +133,11 @@
     let spo2Chart = null;
     let allBpData = [];
     let allSpo2Data = [];
-    const userId = "690583a8d3dde5f187c1cd58"; // User ID cố định
-
+    const userId = getCurrentUserId(); // User ID cố định
+    if (!userId) {
+      alert("Không lấy được thông tin người dùng. Vui lòng đăng nhập lại.");
+      logout(); // hàm đã có trong auth.js
+    }
     // Load tất cả records của user
     async function loadAllRecords() {
       try {

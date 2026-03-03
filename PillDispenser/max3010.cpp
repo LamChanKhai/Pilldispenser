@@ -14,6 +14,7 @@
 MAX30105 sensor;
 
 extern PubSubClient client;
+extern const char* USER_ID;
 
 // ================= RAW BUFFERS =================
 uint32_t irBuff[100];    // 100 sample ~1s
@@ -150,8 +151,7 @@ void measureAndPublish() {
                         lastSampleTime = now;
                         consecutiveLowSamples = 0;  // Reset counter
 
-                        // Phát âm thanh bắt đầu đo nhiệt độ và oxy trong máu
-                        playWavFileThen("Bat_dau_do.wav","Bat_dau_do.wav");
+                        beepOnce();  // Bíp khi bắt đầu đo
 
                         // Lưu sample đầu tiên
                         irBuff[0] = ir;
@@ -253,15 +253,15 @@ void measureAndPublish() {
                     doc["temp"] = temperature;   // gửi nhiệt độ (°C)
                     doc["ts"]   = millis();
                     doc["type"] = "spo2"; 
+                    doc["userId"] = USER_ID;
                     String payload;
                     serializeJson(doc, payload);
 
                     client.publish(mqtt_topic_measurement, payload.c_str());
                     Serial.println("📤 MQTT sent: " + payload);
 
-                    // Phát "Đã đo xong" rồi "Gửi dữ liệu hoàn tất"
-                    playWavFileThen("Da_do_xong.wav", "Gui_du_lieu_hoan_tat.wav");
-
+                    beepOnce();  // Bíp khi đo xong
+                    beepOnce();
                     // Reset về trạng thái idle và lưu thời gian kết thúc
                     lastMeasurementEndTime = now;
                     state = IDLE;

@@ -11,6 +11,7 @@
 #include "bp.h"
 #include "max3010.h"
 #include "time.h"
+#include "audio.h"
 // ===== MQTT =====
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -104,6 +105,7 @@ void setup() {
     client.setCallback(mqttCallback);
 
     Serial.println("\n=== SYSTEM READY – CHỜ LỆNH ===");
+    beepOnce(); 
 }
 
 // ----------------------------------------------------------------------------------

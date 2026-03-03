@@ -21,7 +21,20 @@ function checkAuth() {
 function getToken() {
     return localStorage.getItem('token');
 }
+function getCurrentUserId() {
+    const token = getToken();
+    if (!token) return null;
 
+    try {
+        const payloadBase64 = token.split('.')[1];
+        const payloadJson = atob(payloadBase64);
+        const payload = JSON.parse(payloadJson);
+        return payload.userId || payload.id || null;
+    } catch (e) {
+        console.error('Không decode được token:', e);
+        return null;
+    }
+}
 // Lưu token vào localStorage
 function setToken(token) {
     localStorage.setItem('token', token);

@@ -45,6 +45,7 @@ void publishBP() {
     serializeJson(doc, payload);
 
     client.publish(mqtt_topic_measurement, payload.c_str());
+    beepOnce();  // Bíp khi gửi BP xong
 
     Serial.println("📤 BP sent:");
     Serial.println(payload);
@@ -115,8 +116,7 @@ void sendTelegramAlert(int sys, int dia, int pulse) {
 
     if (httpCode == 200) {
         Serial.println("📨 Telegram alert sent successfully");
-        // Phát file WAV thông báo gửi dữ liệu hoàn tất
-        playWavFileThen("Gui_du_lieu_hoan_tat.wav","Gui_du_lieu_hoan_tat.wav");
+        beepOnce();  // Bíp khi gửi Telegram xong
     } else {
         Serial.printf("❌ Telegram alert failed, code: %d\n", httpCode);
     }

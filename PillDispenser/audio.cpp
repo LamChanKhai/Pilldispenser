@@ -1,143 +1,78 @@
 #include <Arduino.h>
 #include <driver/i2s.h>
-#include <FS.h>
-#include <LittleFS.h>
+#include <math.h>
 
 #include "audio.h"
 #include "config.h"
-#include "bp.h"  // Để gọi sendTelegramPillNotTaken()
+#include "bp.h"
+
+// ======================= BEEP CONFIG =======================
+#define BEEP_FREQ_HZ      1000
+#define BEEP_DURATION_MS  150
+#define BEEP_PAUSE_MS     200
+#define BEEP_AMPLITUDE    12000
+
+static const uint32_t AUDIO_SR = 16000;
+static const size_t BUF_SAMPLES = 256;
+int16_t audioBuffer[BUF_SAMPLES];
 
 // ======================= STATE =======================
 bool alarmActive = false;
-bool playFileActive = false;    // Trạng thái phát file (one-shot)
-bool isLooping = false;         // true = alarm (loop), false = play file (one-shot)
-File wavFile;
-uint32_t wavDataStart = 0;      // Vị trí bắt đầu dữ liệu audio trong file
-uint32_t wavDataSize = 0;       // Kích thước dữ liệu audio
-uint32_t wavBytesRead = 0;     // Số bytes đã đọc
-uint16_t wavSampleRate = 16000; // Sample rate từ WAV file
-uint16_t wavBitsPerSample = 16; // Bits per sample từ WAV file
-uint16_t wavChannels = 1;       // Số kênh từ WAV file
-bool wavFileOpen = false;
-static const char* nextWavFilename = nullptr;  // File phát tiếp sau khi one-shot xong (để nối 2 file)
+bool notificationSent = false;
+unsigned long alarmStartTime = 0;
+const unsigned long ALARM_TIMEOUT_MS = 30000;  // 5 phút
 
-// ======================= ALARM TIMING =======================
-unsigned long alarmStartTime = 0;        // Thời gian alarm bắt đầu
-bool notificationSent = false;           // Flag đã gửi thông báo chưa uống thuốc
-const unsigned long ALARM_TIMEOUT_MS = 300000;  // 5 phút = 300000ms
+// Alarm beep state machine
+enum AlarmBeepState { ALARM_BEEP_OFF, ALARM_BEEP_ON, ALARM_BEEP_PAUSE };
+static AlarmBeepState alarmBeepState = ALARM_BEEP_OFF;
+static unsigned long alarmBeepPhaseStart = 0;
+static uint32_t alarmBeepSamplesWritten = 0;
 
-float audioGain = 3.0f;         // Hệ số tăng âm lượng (3.0 = tăng gấp 3 lần)
-int16_t audioBuffer[512];       // Buffer để đọc dữ liệu từ WAV
+bool isAlarmActive() { return alarmActive; }
 
-bool isAlarmActive() { return alarmActive || playFileActive; }
+// ======================= SINEWAVE BEEP =======================
+// Tạo buffer sine wave và ghi ra I2S
+static void writeBeepSamples(uint32_t numSamples, bool fadeOut = false) {
+    const float omega = 2.0f * 3.14159265f * BEEP_FREQ_HZ / AUDIO_SR;
+    uint32_t written = 0;
 
-// ======================= WAV FILE PARSING ======================
-bool parseWavHeader(File &file) {
-    char chunkID[5] = {0};
-    uint32_t chunkSize;
-    char format[5] = {0};
-    
-    file.seek(0);
-    
-    // Đọc RIFF header
-    file.readBytes(chunkID, 4);
-    if (strncmp(chunkID, "RIFF", 4) != 0) {
-        Serial.println("❌ Not a RIFF file");
-        return false;
-    }
-    
-    file.readBytes((char*)&chunkSize, 4);
-    file.readBytes(format, 4);
-    if (strncmp(format, "WAVE", 4) != 0) {
-        Serial.println("❌ Not a WAVE file");
-        return false;
-    }
-
-    // Tìm chunk "fmt "
-    bool fmtFound = false;
-    while (file.position() < file.size()) {
-        file.readBytes(chunkID, 4);
-        file.readBytes((char*)&chunkSize, 4);
-        
-        if (strncmp(chunkID, "fmt ", 4) == 0) {
-            fmtFound = true;
-            uint16_t audioFormat, numChannels, bitsPerSample, blockAlign;
-            uint32_t sampleRate, byteRate;
-            
-            file.readBytes((char*)&audioFormat, 2);
-            file.readBytes((char*)&numChannels, 2);
-            file.readBytes((char*)&sampleRate, 4);
-            file.readBytes((char*)&byteRate, 4);
-            file.readBytes((char*)&blockAlign, 2);
-            file.readBytes((char*)&bitsPerSample, 2);
-            
-            wavSampleRate = sampleRate;
-            wavChannels = numChannels;
-            wavBitsPerSample = bitsPerSample;
-            
-            // Bỏ qua phần còn lại của fmt chunk nếu có
-            if (chunkSize > 16) {
-                file.seek(file.position() + chunkSize - 16);
+    while (written < numSamples) {
+        size_t chunk = (numSamples - written < BUF_SAMPLES) ? (size_t)(numSamples - written) : BUF_SAMPLES;
+        for (size_t i = 0; i < chunk; i++) {
+            float t = (written + i) * omega;
+            int32_t sample = (int32_t)(BEEP_AMPLITUDE * sinf(t));
+            if (fadeOut && written + i > numSamples - AUDIO_SR / 100) {
+                float f = (float)(numSamples - (written + i)) / (AUDIO_SR / 100);
+                sample = (int32_t)(sample * f);
             }
-            break;
-        } else {
-            // Bỏ qua chunk này
-            file.seek(file.position() + chunkSize);
+            if (sample > 32767) sample = 32767;
+            if (sample < -32768) sample = -32768;
+            audioBuffer[i] = (int16_t)sample;
         }
+        size_t bytesWritten;
+        i2s_write(I2S_NUM_0, (const char*)audioBuffer, chunk * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
+        written += chunk;
     }
-
-    if (!fmtFound) {
-        Serial.println("❌ fmt chunk not found");
-        return false;
-    }
-
-    // Tìm chunk "data"
-    bool dataFound = false;
-    while (file.position() < file.size()) {
-        file.readBytes(chunkID, 4);
-        file.readBytes((char*)&chunkSize, 4);
-        
-        if (strncmp(chunkID, "data", 4) == 0) {
-            dataFound = true;
-            wavDataSize = chunkSize;
-            wavDataStart = file.position();
-            break;
-        } else {
-            // Bỏ qua chunk này
-            file.seek(file.position() + chunkSize);
-        }
-    }
-
-    if (!dataFound) {
-        Serial.println("❌ data chunk not found");
-        return false;
-    }
-
-    Serial.printf("✅ WAV Info: %dHz, %d-bit, %d channel(s), %d bytes\n", 
-                   wavSampleRate, wavBitsPerSample, wavChannels, wavDataSize);
-    return true;
 }
 
-// ======================= INIT I2S ======================
-void initAudioAlarm() {
-    // Khởi tạo LittleFS
-    if (!LittleFS.begin(true)) {
-        Serial.println("❌ LittleFS Mount Failed");
-        return;
-    }
-    Serial.println("✅ LittleFS Mounted");
+// Bíp 1 lần (blocking, ngắn)
+void beepOnce() {
+    uint32_t samples = AUDIO_SR * BEEP_DURATION_MS / 1000;
+    writeBeepSamples(samples, true);
+}
 
-    // Cấu hình I2S với sample rate mặc định (sẽ được cập nhật khi load WAV)
+// ======================= INIT I2S =======================
+void initAudioAlarm() {
     i2s_config_t cfg = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
-        .sample_rate = SAMPLE_RATE,
+        .sample_rate = AUDIO_SR,
         .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
         .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
         .communication_format = I2S_COMM_FORMAT_STAND_I2S,
         .intr_alloc_flags = 0,
         .dma_buf_count = 8,
-        .dma_buf_len = 64,
-        .use_apll = false,
+        .dma_buf_len = 128,
+        .use_apll = true,
         .tx_desc_auto_clear = true,
         .fixed_mclk = 0
     };
@@ -153,157 +88,70 @@ void initAudioAlarm() {
     i2s_set_pin(I2S_NUM_0, &pins);
     i2s_zero_dma_buffer(I2S_NUM_0);
 
-    Serial.println("Audio Alarm Ready ✓");
+    Serial.println("Audio Beep Ready ✓");
 }
 
-// ================ CONTROL FUNCTIONS ===================
-
-// Hàm chung để mở và chuẩn bị phát file WAV
-bool openWavFile(const char* filepath, bool loop) {
-    // Dừng phát hiện tại nếu có
-    if (alarmActive || playFileActive) {
-        stopAlarmSound();
-    }
-
-    // Mở file WAV
-    if (!LittleFS.exists(filepath)) {
-        Serial.printf("❌ File %s not found!\n", filepath);
-        return false;
-    }
-
-    wavFile = LittleFS.open(filepath, "r");
-    if (!wavFile) {
-        Serial.printf("❌ Cannot open %s\n", filepath);
-        return false;
-    }
-
-    // Parse WAV header
-    if (!parseWavHeader(wavFile)) {
-        wavFile.close();
-        return false;
-    }
-
-    // Cập nhật I2S với sample rate từ WAV file
-    i2s_set_sample_rates(I2S_NUM_0, wavSampleRate);
-
-    // Đặt vị trí file đến đầu dữ liệu audio
-    wavFile.seek(wavDataStart);
-    wavBytesRead = 0;
-    wavFileOpen = true;
-    isLooping = loop;
-
-    if (loop) {
-        alarmActive = true;
-        playFileActive = false;
-        alarmStartTime = millis();  // Lưu thời gian bắt đầu alarm
-        notificationSent = false;    // Reset flag thông báo
-        Serial.printf("🔊 Alarm ON - Playing %s (loop)\n", filepath);
-    } else {
-        alarmActive = false;
-        playFileActive = true;
-        Serial.printf("🔊 Playing %s (one-shot)\n", filepath);
-    }
-
-    return true;
-}
-
+// ======================= ALARM CONTROL =======================
 void startAlarmSound() {
-    openWavFile("/sounds/alarm.wav", true);
-}
-
-// Hàm mới: phát file WAV với tên file làm tham số (phát một lần)
-void playWavFile(const char* filename) {
-    nextWavFilename = nullptr;
-    char filepath[64];
-    snprintf(filepath, sizeof(filepath), "/sounds/%s", filename);
-    openWavFile(filepath, false);
-}
-
-// Phát file thứ nhất, khi xong tự phát file thứ hai (one-shot cho cả hai)
-void playWavFileThen(const char* filename, const char* nextFilename) {
-    nextWavFilename = nextFilename;
-    char filepath[64];
-    snprintf(filepath, sizeof(filepath), "/sounds/%s", filename);
-    openWavFile(filepath, false);
+    alarmActive = true;
+    alarmStartTime = millis();
+    notificationSent = false;
+    alarmBeepState = ALARM_BEEP_ON;
+    alarmBeepPhaseStart = millis();
+    alarmBeepSamplesWritten = 0;
+    Serial.println("🔊 Alarm ON - Beep continuous");
 }
 
 void stopAlarmSound() {
-    if (!alarmActive && !playFileActive) return;
-
     alarmActive = false;
-    playFileActive = false;
-    wavBytesRead = 0;
-    alarmStartTime = 0;      // Reset thời gian alarm
-    notificationSent = false; // Reset flag thông báo
-    
-    if (wavFileOpen && wavFile) {
-        wavFile.close();
-        wavFileOpen = false;
-    }
-
+    alarmStartTime = 0;
+    notificationSent = false;
+    alarmBeepState = ALARM_BEEP_OFF;
     i2s_zero_dma_buffer(I2S_NUM_0);
-    Serial.println("🔇 Audio OFF");
+    Serial.println("🔇 Alarm OFF");
 }
 
 void updateAlarmSound() {
-    if ((!alarmActive && !playFileActive) || !wavFileOpen || !wavFile) return;
+    if (!alarmActive || alarmBeepState == ALARM_BEEP_OFF) return;
 
-    // Kiểm tra nếu alarm đang chạy và đã qua 5 phút mà chưa gửi thông báo
-    if (alarmActive && alarmStartTime > 0 && !notificationSent) {
+    // Timeout 5 phút → gửi thông báo
+    if (alarmStartTime > 0 && !notificationSent) {
         unsigned long elapsed = millis() - alarmStartTime;
         if (elapsed >= ALARM_TIMEOUT_MS) {
-            Serial.println("⏰ Alarm đã kêu 5 phút - Gửi thông báo chưa uống thuốc");
+            Serial.println("⏰ Alarm 5 phút - Gửi thông báo chưa uống thuốc");
             sendTelegramPillNotTaken();
-            notificationSent = true;  // Đánh dấu đã gửi để không spam
+            notificationSent = true;
         }
     }
 
-    // Kiểm tra đã phát hết file chưa
-    if (wavBytesRead >= wavDataSize) {
-        if (isLooping) {
-            // Lặp lại từ đầu (cho alarm)
-            wavFile.seek(wavDataStart);
-            wavBytesRead = 0;
-        } else {
-            // One-shot xong: nếu có file tiếp theo thì phát, không thì dừng
-            if (nextWavFilename != nullptr) {
-                char filepath[64];
-                snprintf(filepath, sizeof(filepath), "/sounds/%s", nextWavFilename);
-                nextWavFilename = nullptr;
-                wavFile.close();
-                wavFileOpen = false;
-                openWavFile(filepath, false);
-                return;
-            }
-            stopAlarmSound();
+    unsigned long now = millis();
+
+    if (alarmBeepState == ALARM_BEEP_ON) {
+        uint32_t targetSamples = AUDIO_SR * BEEP_DURATION_MS / 1000;
+        if (alarmBeepSamplesWritten >= targetSamples) {
+            alarmBeepState = ALARM_BEEP_PAUSE;
+            alarmBeepPhaseStart = now;
             return;
         }
-    }
+        uint32_t remain = targetSamples - alarmBeepSamplesWritten;
+        size_t chunk = (remain < BUF_SAMPLES) ? (size_t)remain : BUF_SAMPLES;
+        const float omega = 2.0f * 3.14159265f * BEEP_FREQ_HZ / AUDIO_SR;
 
-    // Đọc dữ liệu từ WAV file
-    size_t bytesToRead = min((uint32_t)sizeof(audioBuffer), wavDataSize - wavBytesRead);
-    size_t bytesRead = wavFile.readBytes((char*)audioBuffer, bytesToRead);
-    
-    if (bytesRead == 0) {
-        // File đã hết, reset về đầu
-        wavFile.seek(wavDataStart);
-        wavBytesRead = 0;
-        return;
+        for (size_t i = 0; i < chunk; i++) {
+            float t = (alarmBeepSamplesWritten + i) * omega;
+            int32_t sample = (int32_t)(BEEP_AMPLITUDE * sinf(t));
+            if (sample > 32767) sample = 32767;
+            if (sample < -32768) sample = -32768;
+            audioBuffer[i] = (int16_t)sample;
+        }
+        size_t bytesWritten;
+        i2s_write(I2S_NUM_0, (const char*)audioBuffer, chunk * sizeof(int16_t), &bytesWritten, 10);
+        alarmBeepSamplesWritten += chunk;
+    } else if (alarmBeepState == ALARM_BEEP_PAUSE) {
+        if (now - alarmBeepPhaseStart >= BEEP_PAUSE_MS) {
+            alarmBeepState = ALARM_BEEP_ON;
+            alarmBeepPhaseStart = now;
+            alarmBeepSamplesWritten = 0;
+        }
     }
-
-    // Tăng âm lượng bằng cách nhân với gain và clamp để tránh clipping
-    size_t samplesCount = bytesRead / sizeof(int16_t);
-    for (size_t i = 0; i < samplesCount; i++) {
-        int32_t amplified = (int32_t)audioBuffer[i] * audioGain;
-        // Clamp giá trị trong phạm vi int16_t để tránh clipping
-        if (amplified > 32767) amplified = 32767;
-        if (amplified < -32768) amplified = -32768;
-        audioBuffer[i] = (int16_t)amplified;
-    }
-
-    // Gửi dữ liệu đến I2S
-    size_t written;
-    i2s_write(I2S_NUM_0, (const char*)audioBuffer, bytesRead, &written, portMAX_DELAY);
-    
-    wavBytesRead += bytesRead;
 }
