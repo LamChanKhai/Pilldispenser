@@ -170,10 +170,22 @@ export const saveBpInternal = async (data) => {
 
 /**
  * Lưu dữ liệu spo2 từ MQTT vào MongoDB (Internal function)
+ * 🫀 Received measurement data: {
+  spo2: 100,
+  temp: 34.1875,
+  ts: 245394,
+  type: 'spo2',
+  userId: '69133fba40de254edf366794'
+}
  */
 export const saveSpo2Internal = async (data) => {
   try {
-    const spo2 = new spo2Model(data);
+    const spo2 = new spo2Model({
+      userId: data.userId,
+      spo2: data.spo2,
+      temperature: data.temp,
+      time: data.time
+    });
     await spo2.save();
   } catch (error) {
     console.error("Error saving spo2:", error);
