@@ -2,6 +2,7 @@
 #include <ArduinoJson.h>
 #include "schedule.h"
 #include "audio.h"
+#include "motor.h"
 
 // ======= STRUCT LỊCH =======
 struct ScheduleEntry {
@@ -107,6 +108,10 @@ void parseCustomJSON(String json){
 
             addSchedule(gioStr);
         }
+    }
+    Serial.printf("scheduleCount = %d\n",scheduleCount);
+    for(int i=0;i<14-scheduleCount-1;i++){
+        rotateToNextCompartment();
     }
     Serial.printf("📥 Loaded %d schedule items (custom)\n",scheduleCount);
 }

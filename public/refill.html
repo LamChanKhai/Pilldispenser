@@ -40,6 +40,17 @@
     .compartment.incomplete {
       fill: #3b82f6;
     }
+    /* Ô ở 12 giờ luôn không màu */
+    .compartment.at-twelve {
+      fill: #e5e7eb;
+      stroke: #d1d5db;
+      stroke-width: 1;
+    }
+    /* Ô ở 11 giờ = chuẩn bị tới giờ (giữ màu trạng thái + viền nổi bật) */
+    .compartment.next-up {
+      stroke: #0ea5e9;
+      stroke-width: 3;
+    }
 
     .compartments-group {
       transform-origin: 250px 250px;
@@ -159,6 +170,7 @@
     const innerRadius = 80;
     const totalCompartments = 15;
     let rotationAngle = 0;
+    let lastStatusArray = null;
 
     const svg = document.querySelector('svg');
     const outerCompartments = document.getElementById('outer-compartments');
@@ -166,8 +178,9 @@
     // Tạo 15 ngăn ngoài, mỗi ngăn có góc 360/15 = 24 độ
     const angleStep = 360 / totalCompartments; // 24 độ mỗi ngăn
 
+    // Vị trí 0 = 12 giờ = ô 15, sau đó 14,13,...,1 theo chiều kim đồng hồ (đánh số ngược chiều kim đồng hồ)
     for (let i = 0; i < totalCompartments; i++) {
-      const compartmentNumber = i + 1;
+      const compartmentNumber = i === 0 ? 15 : (15 - i); // 15 ở 12h, rồi 14,13,...,1 đi ngược chiều kim đồng hồ
       
       // Tính góc cho ngăn này (bắt đầu từ trên, đi theo chiều kim đồng hồ)
       const angle = i * angleStep;
@@ -180,28 +193,26 @@
       const startAngle = angleRad - (compartmentAngle / 2);
       const endAngle = angleRad + (compartmentAngle / 2);
       
-      // Ngăn 15 để trống - không tạo path
-      if (compartmentNumber !== 15) {
-        // Tạo path cho ngăn hình quạt
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const x1 = centerX + outerRadius * Math.cos(startAngle);
-        const y1 = centerY + outerRadius * Math.sin(startAngle);
-        const x2 = centerX + outerRadius * Math.cos(endAngle);
-        const y2 = centerY + outerRadius * Math.sin(endAngle);
-        const x3 = centerX + innerRadius * Math.cos(endAngle);
-        const y3 = centerY + innerRadius * Math.sin(endAngle);
-        const x4 = centerX + innerRadius * Math.cos(startAngle);
-        const y4 = centerY + innerRadius * Math.sin(startAngle);
-        
-        const pathData = `M ${x1} ${y1} A ${outerRadius} ${outerRadius} 0 0 1 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 0 0 ${x4} ${y4} Z`;
-        
-        path.setAttribute('d', pathData);
-        path.setAttribute('id', `compartment-${compartmentNumber}`);
-        path.setAttribute('class', 'compartment empty');
-        path.setAttribute('filter', 'url(#shadow)');
-        
-        outerCompartments.appendChild(path);
-      }
+      // Tạo path cho tất cả 15 ngăn
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const x1 = centerX + outerRadius * Math.cos(startAngle);
+      const y1 = centerY + outerRadius * Math.sin(startAngle);
+      const x2 = centerX + outerRadius * Math.cos(endAngle);
+      const y2 = centerY + outerRadius * Math.sin(endAngle);
+      const x3 = centerX + innerRadius * Math.cos(endAngle);
+      const y3 = centerY + innerRadius * Math.sin(endAngle);
+      const x4 = centerX + innerRadius * Math.cos(startAngle);
+      const y4 = centerY + innerRadius * Math.sin(startAngle);
+      
+      const pathData = `M ${x1} ${y1} A ${outerRadius} ${outerRadius} 0 0 1 ${x2} ${y2} L ${x3} ${y3} A ${innerRadius} ${innerRadius} 0 0 0 ${x4} ${y4} Z`;
+      
+      path.setAttribute('d', pathData);
+      path.setAttribute('id', `compartment-${compartmentNumber}`);
+      // Mặc định tất cả đều có màu theo trạng thái; ô ở góc 12 giờ sẽ được set class at-twelve trong updateCompartmentColors
+      path.setAttribute('class', 'compartment empty');
+      path.setAttribute('filter', 'url(#shadow)');
+      
+      outerCompartments.appendChild(path);
       
       // Thêm số ngăn (kể cả ngăn 15)
       const labelAngle = angleRad;
@@ -222,17 +233,28 @@
       outerCompartments.appendChild(text);
     }
 
-    /** Cập nhật màu các ô theo status_Array: completed=xanh, skipped=đỏ, late=vàng, empty=xám */
+    /** Ô đang ở góc 12 giờ (sau khi xoay) dựa vào rotationAngle */
+    function getCompartmentAtTwelve() {
+      const index = ((Math.round(rotationAngle / angleStep) % totalCompartments) + totalCompartments) % totalCompartments;
+      return index === 0 ? 15 : index;
+    }
+
+    /** Cập nhật màu các ô theo status_Array. Ô nào đang ở góc 12 giờ thì luôn không màu. */
     function updateCompartmentColors(statusArray) {
-      if (!statusArray || !Array.isArray(statusArray)) return;
-      for (let i = 0; i < 14; i++) {
-        const compartmentNumber = i + 1;
+      const atTwelve = getCompartmentAtTwelve();
+      for (let compartmentNumber = 1; compartmentNumber <= totalCompartments; compartmentNumber++) {
         const el = document.getElementById(`compartment-${compartmentNumber}`);
         if (!el) continue;
-        const status = (statusArray[i] === 'completed' || statusArray[i] === 'incomplete' || statusArray[i] === 'skipped' || statusArray[i] === 'late' || statusArray[i] === 'empty')
-          ? statusArray[i]
-          : 'empty';
-        el.setAttribute('class', `compartment ${status}`);
+        if (compartmentNumber === atTwelve) {
+          el.setAttribute('class', 'compartment at-twelve');
+        } else {
+          const status = (statusArray && Array.isArray(statusArray) && compartmentNumber <= 14)
+            ? ((statusArray[compartmentNumber - 1] === 'completed' || statusArray[compartmentNumber - 1] === 'incomplete' || statusArray[compartmentNumber - 1] === 'skipped' || statusArray[compartmentNumber - 1] === 'late' || statusArray[compartmentNumber - 1] === 'empty')
+                ? statusArray[compartmentNumber - 1]
+                : 'empty')
+            : 'empty';
+          el.setAttribute('class', `compartment ${status}`);
+        }
       }
     }
 
@@ -245,6 +267,7 @@
         .then(res => res.json())
         .then(data => {
           if (data.status_Array) {
+            lastStatusArray = data.status_Array;
             updateCompartmentColors(data.status_Array);
           }
         })
@@ -265,6 +288,8 @@
       rotationAngle += (360 / 15);
       const compartmentsGroup = document.getElementById('outer-compartments');
       compartmentsGroup.style.transform = `rotate(${rotationAngle}deg)`;
+      // Cập nhật ngay: ô mới ở 12 giờ thành không màu
+      if (lastStatusArray) updateCompartmentColors(lastStatusArray);
     }
   </script>
 </body>
