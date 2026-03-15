@@ -7,6 +7,7 @@ void startAlarmSound();    // Bắt đầu alarm (bíp liên tục đến giờ 
 void stopAlarmSound();     // Tắt alarm
 void updateAlarmSound();   // Gọi mỗi loop() để duy trì alarm
 bool isAlarmActive();      // Đang alarm?
+bool isAlarmOverdue();     // Alarm đã quá 5 phút (bấm trễ)?
 
 void beepOnce();           // Bíp 1 lần ngắn (MAX3010, BP, v.v.)
 

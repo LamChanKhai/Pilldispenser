@@ -11,6 +11,7 @@
 
     <!-- Tailwind CDN (nếu bạn đang dùng) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="auth.js"></script>
 </head>
 
@@ -115,14 +116,24 @@
                 <div class="flex items-center">
                     <i class="fas fa-heartbeat text-red-700 w-6"></i>
                     <label class="w-1/3 font-medium">HA tâm thu</label>
-                    <input type="number" name="sysBP" required class="w-2/3 p-2 border rounded-lg">
+                    <div class="w-2/3 flex gap-2">
+                        <input type="number" name="sysBP" required readonly class="w-1/2 p-2 border rounded-lg bg-gray-100 cursor-not-allowed">
+                        <select id="sysBpSelect" class="w-1/2 p-2 border rounded-lg">
+                            <option value="">Chọn bản ghi...</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Huyết áp tâm trương -->
                 <div class="flex items-center">
                     <i class="fas fa-heart text-pink-600 w-6"></i>
                     <label class="w-1/3 font-medium">HA tâm trương</label>
-                    <input type="number" name="diaBP" required class="w-2/3 p-2 border rounded-lg">
+                    <div class="w-2/3 flex gap-2">
+                        <input type="number" name="diaBP" required readonly class="w-1/2 p-2 border rounded-lg bg-gray-100 cursor-not-allowed">
+                        <select id="diaBpSelect" class="w-1/2 p-2 border rounded-lg">
+                            <option value="">Chọn bản ghi...</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- BMI -->
@@ -136,7 +147,12 @@
                 <div class="flex items-center">
                     <i class="fas fa-wave-square text-indigo-600 w-6"></i>
                     <label class="w-1/3 font-medium">Nhịp tim</label>
-                    <input type="number" name="heartRate" required class="w-2/3 p-2 border rounded-lg">
+                    <div class="w-2/3 flex gap-2">
+                        <input type="number" name="heartRate" required readonly class="w-1/2 p-2 border rounded-lg bg-gray-100 cursor-not-allowed">
+                        <select id="heartRateSelect" class="w-1/2 p-2 border rounded-lg">
+                            <option value="">Chọn bản ghi...</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Button -->
@@ -151,6 +167,134 @@
     </main>
 
     <script>
+        // ====== Load dữ liệu huyết áp từ database cho 3 dropdown ======
+        let allBpDataPredict = [];
+
+        async function loadBpRecordsForPredict() {
+            const userId = getCurrentUserId();
+            if (!userId) {
+                alert("Không lấy được thông tin người dùng. Vui lòng đăng nhập lại.");
+                logout();
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/v1/measurement/bp/${userId}`);
+                allBpDataPredict = await res.json();
+                populateBpDropdownsPredict();
+            } catch (err) {
+                console.error("Lỗi khi tải dữ liệu huyết áp:", err);
+            }
+        }
+
+        function populateSingleSelect(select, valueExtractor) {
+            if (!select) return;
+
+            select.innerHTML = '<option value="">Chọn bản ghi...</option>';
+
+            if (!allBpDataPredict || allBpDataPredict.length === 0) {
+                const opt = document.createElement("option");
+                opt.value = "";
+                opt.textContent = "Không có dữ liệu";
+                select.appendChild(opt);
+                return;
+            }
+
+            const sorted = [...allBpDataPredict].sort((a, b) => {
+                return new Date(b.createdAt) - new Date(a.createdAt);
+            });
+
+            sorted.forEach((record, index) => {
+                if (!record.createdAt) return;
+
+
+                const date = new Date(record.createdAt);
+                const option = document.createElement("option");
+                option.value = record._id || index;
+                option.textContent = `(${date.toLocaleString("vi-VN", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                })})`;
+                select.appendChild(option);
+            });
+        }
+
+        function populateBpDropdownsPredict() {
+            const sysSelect = document.getElementById("sysBpSelect");
+            const diaSelect = document.getElementById("diaBpSelect");
+            const heartSelect = document.getElementById("heartRateSelect");
+
+            populateSingleSelect(sysSelect, (r) => r.systolic);
+            populateSingleSelect(diaSelect, (r) => r.diastolic);
+            populateSingleSelect(heartSelect, (r) => r.heart_beat);
+
+            // Chọn mặc định bản ghi mới nhất (option đầu tiên sau placeholder)
+            if (sysSelect && sysSelect.options.length > 1) {
+                sysSelect.selectedIndex = 1;
+                onBpRecordChangePredict("sys");
+            }
+            if (diaSelect && diaSelect.options.length > 1) {
+                diaSelect.selectedIndex = 1;
+                onBpRecordChangePredict("dia");
+            }
+            if (heartSelect && heartSelect.options.length > 1) {
+                heartSelect.selectedIndex = 1;
+                onBpRecordChangePredict("heart");
+            }
+        }
+
+        function onBpRecordChangePredict(type) {
+            let selectId, inputName, field;
+            if (type === "sys") {
+                selectId = "sysBpSelect";
+                inputName = "sysBP";
+                field = "systolic";
+            } else if (type === "dia") {
+                selectId = "diaBpSelect";
+                inputName = "diaBP";
+                field = "diastolic";
+            } else if (type === "heart") {
+                selectId = "heartRateSelect";
+                inputName = "heartRate";
+                field = "heart_beat";
+            } else {
+                return;
+            }
+
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            const selectedId = select.value;
+            if (!selectedId) return;
+
+            const rec = allBpDataPredict.find(
+                (r) => r._id === selectedId || (r._id && r._id.toString && r._id.toString() === selectedId)
+            );
+            if (!rec) return;
+
+            const input = document.querySelector(`input[name="${inputName}"]`);
+            if (input) {
+                input.value = rec[field] ?? "";
+            }
+        }
+
+        window.addEventListener("load", () => {
+            loadBpRecordsForPredict();
+
+            const sysSelect = document.getElementById("sysBpSelect");
+            const diaSelect = document.getElementById("diaBpSelect");
+            const heartSelect = document.getElementById("heartRateSelect");
+
+            if (sysSelect) sysSelect.addEventListener("change", () => onBpRecordChangePredict("sys"));
+            if (diaSelect) diaSelect.addEventListener("change", () => onBpRecordChangePredict("dia"));
+            if (heartSelect) heartSelect.addEventListener("change", () => onBpRecordChangePredict("heart"));
+        });
+
+        // ====== Submit form dự đoán ======
         document.getElementById("predictForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);

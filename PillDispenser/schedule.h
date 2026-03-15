@@ -8,5 +8,9 @@
 void clearSchedule();                         // Xóa toàn bộ lịch
 void setSchedule(String data);                // Nhận lịch từ MQTT/json/csv
 void checkSchedule(void (*dispenseFunc)());   // So khớp thời gian → gọi hàm cấp thuốc
+int getLastTriggeredIndex();                  // Chỉ số ô vừa kích hoạt (bấm đúng giờ)
+int getTriggeredCount();                      // Số ô đã kích hoạt từ lần bấm trước
+int getTriggeredIndexAt(int i);               // Chỉ số ô thứ i trong danh sách đã kích hoạt
+void clearTriggeredList();                    // Xóa danh sách sau khi đã gửi MQTT (skipped + completed/late)
 
 #endif

@@ -94,7 +94,9 @@
     async function luuThoiGian() {
       const gioSang = document.getElementById("gioSang").value;
       const gioToi = document.getElementById("gioToi").value;
+      const userId = getCurrentUserId();
       const data = {
+        userId: userId,
         mode: "quick",
         sang: gioSang,
         toi: gioToi

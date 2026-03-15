@@ -1,5 +1,5 @@
 import { mqttClient } from './mqtt.controller.js';
-
+import scheduleModel from '../model/schedule.model.js';
 /** Kiểm tra MQTT có sẵn sàng (cần server chạy lâu dài, KHÔNG chạy trên Vercel serverless) */
 function ensureMqtt(res) {
   if (!mqttClient || !mqttClient.connected) {
@@ -12,7 +12,7 @@ function ensureMqtt(res) {
   return true;
 }
 
-export const setSchedule = (req, res) => {
+export const setSchedule = async (req, res) => {
   if (!ensureMqtt(res)) return;
   console.log('⏰ Setting schedule with data:', req.body);
   const { mode } = req.body;
@@ -27,33 +27,56 @@ export const setSchedule = (req, res) => {
     }
     mqttClient.publish('pill/command/schedule', (mode + "," + sang + "," + toi));
     console.log(`⏰ Schedule set for ${sang} and ${toi}`);
-    res.status(200).json({ message: `Schedule set for ${sang} and ${toi}` });
+    //res.status(200).json({ message: `Schedule set for ${sang} and ${toi}` });
+    const timeArray = [];
+    for (let i = 0; i < 14; i++) 
+      timeArray[i] = (i%2==0) ? sang : toi;
+    try {
+    const newSchedule = await scheduleModel.create({
+      userId: req.body.userId,
+      timeArray: timeArray,
+      status_Array: Array(14).fill('incomplete'),
+      index: 0
+    });
+    res.status(200).json({ message: `Schedule created`, schedule: newSchedule });
+    } catch (error) {
+      console.error("Error creating schedule:", error);
+      res.status(500).json({ message: "Lỗi máy chủ" });
+    }
   } else if(mode === 'custom') {
     const { thoiGian } = req.body;
     console.log('⏰ Time received:', thoiGian);
     if(!thoiGian) {
       return res.status(400).json({ message: 'Thoi gian is required' });
     }
-    //client.publish('pill/command/schedule', (mode + "," + JSON.stringify(thoiGian)));
-    console.log(`⏰ Schedule set for ${JSON.stringify(thoiGian)}`);
-    //{
-    //  mode: 'custom',
-    //  thoiGian: {
-    //    '1': { gio: '11:11', ngay: '1111-11-11' },
-    //    '2': { gio: '22:22', ngay: '2222-02-22' }
-    //    ...
-    //  }
-    //}
-    for (let i = 0; i < thoiGian.length - 1; i++) {
-      if(thoiGian[i].ngay > thoiGian[i+1].ngay) {
+    const thoiGianArray = Object.values(thoiGian);
+    for (let i = 0; i < thoiGianArray.length - 1; i++) {
+      if(thoiGianArray[i].ngay > thoiGianArray[i+1].ngay) {
         return res.status(400).json({ message: 'Ngày uống phải tăng dần' });
       }
-      if(thoiGian[i].gio > thoiGian[i+1].gio && thoiGian[i].ngay === thoiGian[i+1].ngay) {
+      if(thoiGianArray[i].gio > thoiGianArray[i+1].gio && thoiGianArray[i].ngay === thoiGianArray[i+1].ngay) {
         return res.status(400).json({ message: 'Giờ uống phải tăng dần' });
       }
     }
     mqttClient.publish('pill/command/schedule', (JSON.stringify({mode:'custom',thoiGian})));
-    res.status(200).json({ message: `Schedule set for ${thoiGian.length}` });
+    //res.status(200).json({ message: `Schedule set for ${thoiGian.length}` });
+  
+    const timeArray = [];
+    for (let i = 0; i < thoiGianArray.length; i++) {
+      timeArray[i] = thoiGianArray[i].gio;
+    }
+    try {
+      const newSchedule = await scheduleModel.create({
+      userId: req.body.userId,
+      timeArray: timeArray,
+      status_Array: Array(thoiGianArray.length).fill('incomplete').concat(Array(14-thoiGianArray.length).fill('empty')),
+      index: 0
+    });
+    res.status(200).json({ message: `Schedule created`, schedule: newSchedule });
+    } catch (error) {
+      console.error("Error creating schedule:", error);
+      res.status(500).json({ message: "Lỗi máy chủ" });
+    }
   }
 };
 
@@ -61,4 +84,25 @@ export const refill = (req, res) => {
   if (!ensureMqtt(res)) return;
   mqttClient.publish('pill/command/refill' );
   res.status(200).json({ message: `Refilling` });
+};
+
+/** Lấy Schedule mới nhất theo userId (query: userId) */
+export const getLatestScheduleByUser = async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) {
+    return res.status(400).json({ message: 'userId is required' });
+  }
+  try {
+    const schedule = await scheduleModel
+      .findOne({ userId })
+      .sort({ createdAt: -1 })
+      .lean();
+    if (!schedule) {
+      return res.status(404).json({ message: 'No schedule found', schedule: null });
+    }
+    res.status(200).json(schedule);
+  } catch (error) {
+    console.error('Error fetching latest schedule:', error);
+    res.status(500).json({ message: 'Lỗi máy chủ' });
+  }
 };

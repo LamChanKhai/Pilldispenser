@@ -12,6 +12,11 @@ struct ScheduleEntry {
 ScheduleEntry scheduleList[14];
 int scheduleCount = 0;
 int currentIndex  = 0;
+int lastTriggeredIndex = -1;  // Ô vừa kích hoạt (để gửi MQTT khi bấm nút đúng giờ)
+
+// Các ô đã kích hoạt (alarm đã báo) từ lần bấm nút trước → ô không bấm = skipped
+int triggeredIndices[14];
+int triggeredCount = 0;
 
 // Lưu lại mốc thời gian (HH:MM) đã bắn lần gần nhất
 // để trong cùng một phút không bắn lại nữa.
@@ -41,6 +46,8 @@ void clearSchedule() {
     }
     scheduleCount = 0;
     currentIndex  = 0;
+    lastTriggeredIndex = -1;
+    triggeredCount = 0;
     hasLastTriggered = false;
     memset(lastTriggeredTime, 0, sizeof(lastTriggeredTime));
     Serial.println("🗑 Schedule cleared");
@@ -179,6 +186,8 @@ void checkSchedule(void (*dispenseFunc)()){
     if(scheduleList[currentIndex].active &&
        strcmp(scheduleList[currentIndex].time,now)==0){
 
+        lastTriggeredIndex = currentIndex;  // Ô vừa kích hoạt (để gửi MQTT khi bấm đúng giờ)
+        if (triggeredCount < 14) triggeredIndices[triggeredCount++] = currentIndex;  // Lưu để biết ô nào bị skip nếu user không bấm
         Serial.printf("⏰ TIME MATCH → %s → DISPENSE!\n",now);
         dispenseFunc();
 
@@ -191,4 +200,21 @@ void checkSchedule(void (*dispenseFunc)()){
         if(currentIndex >= scheduleCount)
             currentIndex = 0; // vòng lại
     }
+}
+
+int getLastTriggeredIndex() {
+    return lastTriggeredIndex;
+}
+
+int getTriggeredCount() {
+    return triggeredCount;
+}
+
+int getTriggeredIndexAt(int i) {
+    if (i < 0 || i >= triggeredCount) return -1;
+    return triggeredIndices[i];
+}
+
+void clearTriggeredList() {
+    triggeredCount = 0;
 }

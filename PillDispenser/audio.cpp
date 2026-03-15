@@ -30,6 +30,12 @@ static uint32_t alarmBeepSamplesWritten = 0;
 
 bool isAlarmActive() { return alarmActive; }
 
+// Bấm trễ: alarm đã chạy quá 5 phút
+bool isAlarmOverdue() {
+    if (!alarmActive || alarmStartTime == 0) return false;
+    return (millis() - alarmStartTime) >= ALARM_TIMEOUT_MS;
+}
+
 // ======================= SINEWAVE BEEP =======================
 // Tạo buffer sine wave và ghi ra I2S
 static void writeBeepSamples(uint32_t numSamples, bool fadeOut = false) {

@@ -26,7 +26,19 @@
     }
 
     .compartment.empty {
-      fill: #e5e7eb;
+      fill: #9ca3af;
+    }
+    .compartment.completed {
+      fill: #22c55e;
+    }
+    .compartment.skipped {
+      fill: #ef4444;
+    }
+    .compartment.late {
+      fill: #eab308;
+    }
+    .compartment.incomplete {
+      fill: #3b82f6;
     }
 
     .compartments-group {
@@ -210,12 +222,45 @@
       outerCompartments.appendChild(text);
     }
 
+    /** Cập nhật màu các ô theo status_Array: completed=xanh, skipped=đỏ, late=vàng, empty=xám */
+    function updateCompartmentColors(statusArray) {
+      if (!statusArray || !Array.isArray(statusArray)) return;
+      for (let i = 0; i < 14; i++) {
+        const compartmentNumber = i + 1;
+        const el = document.getElementById(`compartment-${compartmentNumber}`);
+        if (!el) continue;
+        const status = (statusArray[i] === 'completed' || statusArray[i] === 'incomplete' || statusArray[i] === 'skipped' || statusArray[i] === 'late' || statusArray[i] === 'empty')
+          ? statusArray[i]
+          : 'empty';
+        el.setAttribute('class', `compartment ${status}`);
+      }
+    }
+
+    /** Lấy Schedule mới nhất theo userId và cập nhật màu các ô */
+    function loadScheduleAndUpdateColors() {
+      const userId = getCurrentUserId();
+      if (!userId) return;
+      const headers = getAuthHeaders();
+      fetch(`/api/v1/schedule/latest?userId=${encodeURIComponent(userId)}`, { headers })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status_Array) {
+            updateCompartmentColors(data.status_Array);
+          }
+        })
+        .catch(err => console.error('Load schedule failed:', err));
+    }
+
+    // Khi tải trang: lấy schedule mới nhất và tô màu các ô
+    loadScheduleAndUpdateColors();
+
     function rotateCompartments() {
       // Xoay các ngăn một góc 360/15 (một vị trí)
-      fetch('/api/v1/schedule/refill')
+      fetch('/api/v1/schedule/refill', { method: 'GET', headers: getAuthHeaders() })
         .then(res => res.json())
         .then(data => {
           console.log(data);
+          loadScheduleAndUpdateColors();
         });
       rotationAngle += (360 / 15);
       const compartmentsGroup = document.getElementById('outer-compartments');
